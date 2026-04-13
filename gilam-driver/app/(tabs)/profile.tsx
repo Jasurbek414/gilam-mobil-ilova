@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
 import { logout } from '../../lib/api';
@@ -18,7 +18,7 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user.fullName?.[0]?.toUpperCase() || 'U'}</Text>
@@ -100,12 +100,12 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 32 },
+  container: { flexGrow: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 40 },
   avatar: {
     width: 96, height: 96, borderRadius: 48, backgroundColor: '#ffffff',

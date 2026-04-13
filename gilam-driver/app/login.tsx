@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, Alert,
-  ActivityIndicator, Dimensions
+  ActivityIndicator, Dimensions, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login } from '../lib/api';
@@ -42,6 +42,7 @@ export default function LoginScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
         
         {/* Brand Header */}
@@ -106,9 +107,12 @@ export default function LoginScreen() {
 
       </View>
 
-      <Text style={styles.secureBadge}>
-        <MaterialIcons name="verified-user" size={12} color="#10b981" /> Himoyalangan ulanish
-      </Text>
+      <View style={{ alignItems: 'center', paddingBottom: 40, paddingTop: 20 }}>
+        <Text style={styles.secureBadgeText}>
+          <MaterialIcons name="verified-user" size={12} color="#10b981" /> Himoyalangan ulanish
+        </Text>
+      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -212,10 +216,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  secureBadge: {
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center',
+  secureBadgeText: {
     fontSize: 12,
     color: '#64748b',
     fontWeight: '600',
