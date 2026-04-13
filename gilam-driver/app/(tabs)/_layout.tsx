@@ -7,28 +7,33 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: '#059669',
+          backgroundColor: '#FFFFFF',
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: '#E2E8F0',
         },
-        headerTintColor: '#fff',
+        headerTintColor: '#000000',
         headerTitleStyle: {
-          fontWeight: '900',
-          textTransform: 'uppercase',
-          letterSpacing: 1,
+          fontWeight: '800',
+          fontSize: 16,
+          letterSpacing: 0.5,
         },
-        tabBarActiveTintColor: '#059669',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: '#000000',
+        tabBarInactiveTintColor: '#A0AEC0',
         tabBarStyle: {
           borderTopWidth: 1,
-          borderTopColor: '#f1f5f9',
+          borderTopColor: '#E2E8F0',
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
+          elevation: 0,
+          backgroundColor: '#FFFFFF',
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '800',
-          textTransform: 'uppercase',
-          letterSpacing: 1,
+          fontWeight: '700',
+          letterSpacing: 0.5,
         },
       }}
     >
@@ -37,7 +42,7 @@ export default function TabLayout() {
         options={{
           title: 'Buyurtmalar',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="assignment" size={size} color={color} />
+            <MaterialIcons name="local-shipping" size={size} color={color} />
           ),
         }}
       />

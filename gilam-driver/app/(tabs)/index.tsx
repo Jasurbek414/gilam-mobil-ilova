@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, Linking, ActivityIndicator, Alert
+  TouchableOpacity, Linking, ActivityIndicator, Alert, Platform
 } from 'react-native';
 import { useAuth } from '../_layout';
 import { getMyOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
@@ -29,7 +29,6 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     loadOrders();
-    // Auto refresh every 30 seconds
     const interval = setInterval(loadOrders, 30000);
     return () => clearInterval(interval);
   }, [loadOrders]);
@@ -56,30 +55,26 @@ export default function OrdersScreen() {
   };
 
   const openMap = (address: string) => {
-    // Attempting to open mapping app, typically Yandex/Google Maps
     Linking.openURL(`https://yandex.uz/maps/?text=${encodeURIComponent(address)}`);
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#059669" />
+        <ActivityIndicator size="large" color="#000000" />
       </View>
     );
   }
 
   const renderOrder = ({ item }: { item: Order }) => {
     const config = STATUS_CONFIG[item.status] || {
-      label: item.status, emoji: '📋', color: '#64748b', bg: '#f1f5f9'
+      label: item.status, emoji: '📋', color: '#718096', bg: '#F7FAFC'
     };
 
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={[styles.statusBadge, { backgroundColor: config.bg, borderColor: config.color }]}>
-            <Text style={styles.statusEmoji}>{config.emoji}</Text>
-            <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
-          </View>
+          <Text style={styles.statusText}>{config.label}</Text>
           <Text style={styles.orderId}>#{item.id.substring(0, 8)}</Text>
         </View>
 
@@ -91,74 +86,59 @@ export default function OrdersScreen() {
                 <Text style={styles.customerPhone}>{item.customer.phone1}</Text>
               </View>
               <TouchableOpacity
-                style={styles.callBtn}
+                style={styles.actionIcon}
                 onPress={() => callCustomer(item.customer!.phone1)}
-                activeOpacity={0.7}
               >
-                <MaterialIcons name="call" size={24} color="#fff" />
+                <MaterialIcons name="phone" size={20} color="#000000" />
               </TouchableOpacity>
             </View>
 
             {item.customer.address && (
-              <View style={styles.addressBox}>
-                <MaterialIcons name="location-pin" size={20} color="#64748b" />
-                <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.addressText}>{item.customer.address}</Text>
-                  <TouchableOpacity onPress={() => openMap(item.customer!.address!)}>
-                    <Text style={styles.mapLink}>Xaritada ochish →</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.addressRow}>
+                <Text style={styles.addressText}>{item.customer.address}</Text>
+                <TouchableOpacity onPress={() => openMap(item.customer!.address!)}>
+                  <Text style={styles.mapLink}>Xarita</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
         )}
 
         <View style={styles.cardFooter}>
-          <Text style={styles.totalItems}>{item.items?.length || 0} ta mahsulot</Text>
-          <Text style={styles.totalAmount}>{Number(item.totalAmount).toLocaleString()} so'm</Text>
+          <Text style={styles.totalItems}>{item.items?.length || 0} PCS</Text>
+          <Text style={styles.totalAmount}>{Number(item.totalAmount).toLocaleString()} SO'M</Text>
         </View>
 
         {item.notes && (
           <View style={styles.notesBox}>
-            <Text style={styles.notesText}>💬 {item.notes}</Text>
+            <Text style={styles.notesText}>{item.notes}</Text>
           </View>
         )}
 
         {config.next && (
-          <View style={styles.actionBox}>
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => handleUpdateStatus(item.id, config.next!)}
-              disabled={updatingId === item.id}
-              activeOpacity={0.8}
-            >
-              {updatingId === item.id ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.actionBtnText}>{config.nextLabel}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => handleUpdateStatus(item.id, config.next!)}
+            disabled={updatingId === item.id}
+          >
+            {updatingId === item.id ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.actionBtnText}>{config.nextLabel}</Text>
+            )}
+          </TouchableOpacity>
         )}
       </View>
     );
   };
 
   const activeCount = orders.length;
-  const waitingCount = orders.filter(o => o.status === 'DRIVER_ASSIGNED').length;
 
   return (
     <View style={styles.container}>
-      {/* Stats */}
       <View style={styles.statsRow}>
-        <View style={[styles.statBox, { backgroundColor: '#059669' }]}>
-          <Text style={styles.statScore}>{activeCount}</Text>
-          <Text style={styles.statLabel}>AKTIV BUYURTMALAR</Text>
-        </View>
-        <View style={[styles.statBox, { backgroundColor: '#d97706' }]}>
-          <Text style={styles.statScore}>{waitingCount}</Text>
-          <Text style={styles.statLabel}>KUTAYOTGAN</Text>
-        </View>
+        <Text style={styles.statCount}>{activeCount}</Text>
+        <Text style={styles.statLabel}>AKTIV BUYURTMALAR</Text>
       </View>
 
       <FlatList
@@ -166,12 +146,11 @@ export default function OrdersScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderOrder}
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#000000']} />}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyTitle}>Hozircha buyurtma yo'q</Text>
-            <Text style={styles.emptyDesc}>Yangi buyurtma kelganda bu yerda ko'rinadi</Text>
+            <Text style={styles.emptyTitle}>Buyurtmalar yo'q</Text>
+            <Text style={styles.emptyDesc}>Barcha buyurtmalar yakunlangan yoki tayinlanmagan.</Text>
           </View>
         }
       />
@@ -180,37 +159,24 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F7FAFC' },
   statsRow: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    alignItems: 'center',
   },
-  statBox: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statScore: { fontSize: 28, fontWeight: '900', color: '#fff' },
-  statLabel: { fontSize: 10, fontWeight: '800', color: '#f1f5f9', letterSpacing: 1, marginTop: 4 },
+  statCount: { fontSize: 36, fontWeight: '900', color: '#000000' },
+  statLabel: { fontSize: 11, fontWeight: '700', color: '#718096', letterSpacing: 1, marginTop: 4 },
   listContent: { padding: 16, paddingBottom: 32 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -218,48 +184,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f8fafc',
+    borderBottomColor: '#F7FAFC',
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusEmoji: { fontSize: 14, marginRight: 6 },
-  statusText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  orderId: { fontSize: 12, color: '#94a3b8', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  statusText: { fontSize: 12, fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: 0.5 },
+  orderId: { fontSize: 12, color: '#A0AEC0', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   cardBody: { padding: 16 },
   customerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   customerInfo: { flex: 1 },
-  customerName: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
-  customerPhone: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  callBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#22c55e',
+  customerName: { fontSize: 16, fontWeight: '700', color: '#1A202C' },
+  customerPhone: { fontSize: 13, color: '#4A5568', marginTop: 2 },
+  actionIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#F2F2F2',
     justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4,
   },
-  addressBox: { flexDirection: 'row', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12 },
-  addressText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  mapLink: { fontSize: 12, fontWeight: '700', color: '#3b82f6', marginTop: 4 },
+  addressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 4 },
+  addressText: { fontSize: 13, color: '#718096', flex: 1, marginRight: 16 },
+  mapLink: { fontSize: 12, fontWeight: '700', color: '#000000', textDecorationLine: 'underline' },
   cardFooter: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 12, paddingHorizontal: 16, backgroundColor: '#f8fafc',
+    padding: 16, borderTopWidth: 1, borderTopColor: '#F7FAFC',
   },
-  totalItems: { fontSize: 13, fontWeight: '600', color: '#64748b' },
-  totalAmount: { fontSize: 16, fontWeight: '900', color: '#059669' },
-  notesBox: { padding: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  notesText: { fontSize: 12, fontStyle: 'italic', color: '#64748b' },
-  actionBox: { padding: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  totalItems: { fontSize: 12, fontWeight: '600', color: '#718096' },
+  totalAmount: { fontSize: 14, fontWeight: '800', color: '#000000' },
+  notesBox: { paddingHorizontal: 16, paddingBottom: 16 },
+  notesText: { fontSize: 13, color: '#A0AEC0', fontStyle: 'italic' },
   actionBtn: {
-    backgroundColor: '#059669', borderRadius: 16, paddingVertical: 16,
-    alignItems: 'center', shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3,
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
-  actionBtnText: { color: '#fff', fontSize: 15, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  actionBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   emptyBox: { alignItems: 'center', paddingVertical: 64 },
-  emptyEmoji: { fontSize: 64, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#475569' },
-  emptyDesc: { fontSize: 13, color: '#94a3b8', marginTop: 4 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#000000', marginBottom: 8 },
+  emptyDesc: { fontSize: 13, color: '#718096', textAlign: 'center' },
 });

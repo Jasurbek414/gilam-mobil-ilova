@@ -40,7 +40,7 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#059669" />
+        <ActivityIndicator size="large" color="#000000" />
       </View>
     );
   }
@@ -51,14 +51,9 @@ export default function HistoryScreen() {
     return (
       <View style={styles.card}>
         <View style={styles.header}>
-          <View style={styles.statusRow}>
-            <Text style={styles.emoji}>{isDelivered ? '✅' : '❌'}</Text>
-            <View style={[styles.badge, isDelivered ? styles.badgeSuccess : styles.badgeError]}>
-              <Text style={[styles.badgeText, isDelivered ? styles.textSuccess : styles.textError]}>
-                {isDelivered ? 'YETKAZILDI' : 'BEKOR QILINDI'}
-              </Text>
-            </View>
-          </View>
+          <Text style={[styles.statusText, !isDelivered && styles.textError]}>
+            {isDelivered ? 'YETKAZILDI' : 'BEKOR QILINDI'}
+          </Text>
           <Text style={styles.orderId}>#{item.id.substring(0, 8)}</Text>
         </View>
 
@@ -74,7 +69,7 @@ export default function HistoryScreen() {
             {new Date(item.updatedAt).toLocaleDateString('uz-UZ')}
           </Text>
           <Text style={styles.amount}>
-            {Number(item.totalAmount).toLocaleString()} so'm
+            {Number(item.totalAmount).toLocaleString()} SO'M
           </Text>
         </View>
       </View>
@@ -88,11 +83,10 @@ export default function HistoryScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#000000']} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyText}>Hali bajarilgan buyurtma yo'q</Text>
+            <Text style={styles.emptyText}>Bajarilgan buyurtmalar yo'q.</Text>
           </View>
         }
       />
@@ -101,30 +95,23 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F7FAFC' },
   list: { padding: 16 },
   card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: '#f1f5f9',
+    backgroundColor: '#FFFFFF', padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  statusRow: { flexDirection: 'row', alignItems: 'center' },
-  emoji: { fontSize: 16, marginRight: 6 },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  badgeSuccess: { backgroundColor: '#dcfce7' },
-  badgeError: { backgroundColor: '#fee2e2' },
-  badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
-  textSuccess: { color: '#16a34a' },
-  textError: { color: '#dc2626' },
-  orderId: { fontSize: 12, color: '#94a3b8', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  statusText: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: '#000000' },
+  textError: { color: '#E53E3E' },
+  orderId: { fontSize: 12, color: '#A0AEC0', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   body: { marginBottom: 16 },
-  name: { fontSize: 14, fontWeight: '700', color: '#334155' },
-  address: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
-  date: { fontSize: 12, color: '#94a3b8', fontWeight: '500' },
-  amount: { fontSize: 15, fontWeight: '900', color: '#059669' },
+  name: { fontSize: 14, fontWeight: '700', color: '#1A202C' },
+  address: { fontSize: 13, color: '#718096', marginTop: 2 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F7FAFC', paddingTop: 12 },
+  date: { fontSize: 12, color: '#718096', fontWeight: '500' },
+  amount: { fontSize: 13, fontWeight: '800', color: '#000000' },
   empty: { alignItems: 'center', paddingVertical: 64 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
-  emptyText: { fontSize: 14, color: '#94a3b8', fontWeight: '600' },
+  emptyText: { fontSize: 14, color: '#718096', fontWeight: '500' },
 });
