@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, Alert,
-  ActivityIndicator, Dimensions, ScrollView
+  ActivityIndicator, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { login } from '../lib/api';
 import { useAuth } from './_layout';
-import { MaterialIcons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-const { width } = Dimensions.get('window');
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,7 +19,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!phone.trim() || !password.trim()) {
-      Alert.alert('Xatolik', "Barcha maydonlarni to'ldiring.");
+      Alert.alert('Ogohlantirish', "Ma'lumotlarni to'liq kiriting");
       return;
     }
     setLoading(true);
@@ -30,196 +28,92 @@ export default function LoginScreen() {
       setUser(user);
       router.replace('/');
     } catch (err: any) {
-      Alert.alert('Xatolik', err.message || 'Kirishda xatolik yuz berdi');
+      Alert.alert('Xatolik', err.message || 'Kirishda xatolik');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090b' }}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
-        
-        {/* Brand Header */}
-        <View style={styles.header}>
-          <View style={styles.iconCircle}>
-             <MaterialIcons name="local-shipping" size={32} color="#10b981" />
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          
+          {/* Logo & Branding */}
+          <View style={styles.header}>
+            <View style={styles.logoBox}>
+               <MaterialIcons name="alt-route" size={42} color="#10b981" />
+            </View>
+            <Text style={styles.title}>Gilam Driver</Text>
+            <Text style={styles.subtitle}>Eksklyuziv hamkorlik platformasi</Text>
           </View>
-          <Text style={styles.title}>Gilam App</Text>
-          <Text style={styles.subtitle}>Logistika va yetkazib berish xizmati qismi</Text>
+
+          {/* Form */}
+          <View style={styles.formBox}>
+             <View style={styles.inputContainer}>
+                <Ionicons name="call" size={20} color="#71717a" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Telefon raqamingiz"
+                  placeholderTextColor="#52525b"
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  cursorColor="#10b981"
+                />
+             </View>
+
+             <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed" size={20} color="#71717a" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Maxfiy parolingiz"
+                  placeholderTextColor="#52525b"
+                  secureTextEntry
+                  cursorColor="#10b981"
+                />
+             </View>
+
+             <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
+                {loading ? <ActivityIndicator color="#09090b" /> : <Text style={styles.loginText}>TIZIMGA KIRISH</Text>}
+             </TouchableOpacity>
+
+             <Text style={styles.forgotPass}>Parolni unutdingizmi?</Text>
+          </View>
+
+        </ScrollView>
+
+        {/* Bottom Secure Branding */}
+        <View style={styles.footer}>
+           <MaterialIcons name="shield" size={12} color="#10b981" />
+           <Text style={styles.footerText}> Secure TLS Encryption</Text>
         </View>
 
-        {/* Input Form */}
-        <View style={styles.form}>
-          <View style={styles.inputWrapper}>
-             <View style={styles.inputPrefix}>
-               <MaterialIcons name="phone" size={20} color="#64748b" />
-             </View>
-             <TextInput
-               style={styles.input}
-               value={phone}
-               onChangeText={setPhone}
-               placeholder="Telefon raqamingiz"
-               placeholderTextColor="#94a3b8"
-               keyboardType="phone-pad"
-               autoCapitalize="none"
-               cursorColor="#10b981"
-             />
-          </View>
-
-          <View style={styles.inputWrapper}>
-             <View style={styles.inputPrefix}>
-               <MaterialIcons name="lock" size={20} color="#64748b" />
-             </View>
-             <TextInput
-               style={styles.input}
-               value={password}
-               onChangeText={setPassword}
-               placeholder="Parolingiz"
-               placeholderTextColor="#94a3b8"
-               secureTextEntry
-               cursorColor="#10b981"
-             />
-          </View>
-
-          <TouchableOpacity style={styles.forgotBtn} activeOpacity={0.6}>
-            <Text style={styles.forgotText}>Parolni tiklash</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.loginBtn, loading && styles.loginBtnDisabled]} 
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginBtnText}>Tizimga kirish</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-      </View>
-
-      <View style={{ alignItems: 'center', paddingBottom: 40, paddingTop: 20 }}>
-        <Text style={styles.secureBadgeText}>
-          <MaterialIcons name="verified-user" size={12} color="#10b981" /> Himoyalangan ulanish
-        </Text>
-      </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: '#ecfdf5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748b',
-    marginTop: 6,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  form: {
-    width: '100%',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    height: 60,
-    overflow: 'hidden',
-  },
-  inputPrefix: {
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: '#f1f5f9',
-    height: '100%',
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 16,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginBottom: 32,
-  },
-  forgotText: {
-    fontSize: 13,
-    color: '#10b981',
-    fontWeight: '700',
-  },
-  loginBtn: {
-    width: '100%',
-    height: 60,
-    backgroundColor: '#10b981',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  loginBtnDisabled: {
-    backgroundColor: '#94a3b8',
-    shadowOpacity: 0,
-  },
-  loginBtnText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  secureBadgeText: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-    alignItems: 'center',
-  }
+  container: { flex: 1, backgroundColor: '#09090b' },
+  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
+  header: { alignItems: 'flex-start', marginBottom: 48 },
+  logoBox: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#27272a' },
+  title: { fontSize: 32, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: '#a1a1aa', fontWeight: '500', marginTop: 4, letterSpacing: 1 },
+  formBox: { width: '100%' },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#18181b', borderRadius: 16, height: 64, marginBottom: 16, borderWidth: 1, borderColor: '#27272a', paddingHorizontal: 16 },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  loginBtn: { height: 60, backgroundColor: '#10b981', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 12, shadowColor: '#10b981', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+  loginText: { color: '#09090b', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
+  forgotPass: { color: '#71717a', fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 24 },
+  footer: { position: 'absolute', bottom: 24, flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center' },
+  footerText: { color: '#52525b', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
 });

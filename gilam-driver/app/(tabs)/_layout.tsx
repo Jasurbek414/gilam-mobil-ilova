@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
 
 export default function TabLayout() {
@@ -8,81 +8,53 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#09090b',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
-          borderBottomColor: '#f1f5f9',
+          borderBottomColor: '#18181b',
         },
-        headerTintColor: '#0f172a',
-        headerTitleStyle: {
-          fontWeight: '800',
-          fontSize: 17,
-        },
-        tabBarActiveTintColor: '#10b981',
-        tabBarInactiveTintColor: '#94a3b8',
+        headerTintColor: '#ffffff',
+        headerTitleStyle: { fontWeight: '800', fontSize: 18, letterSpacing: -0.5 },
         tabBarShowLabel: false,
         tabBarStyle: {
           position: 'absolute',
-          bottom: 16,
-          left: 24,
-          right: 24,
-          elevation: 10,
-          shadowColor: '#10b981',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.15,
-          shadowRadius: 20,
-          backgroundColor: '#1e293b',
-          borderRadius: 32,
-          height: 64,
-          borderTopWidth: 0,
-          paddingBottom: 0,
-          paddingTop: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#09090b',
+          borderTopWidth: 1,
+          borderTopColor: '#27272a',
+          minHeight: 70,
+          elevation: 0,
+          paddingTop: 12,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          headerTitle: 'Buyurtmalar',
+          headerTitle: 'Aktiv Buyurtmalar',
           tabBarIcon: ({ size, focused }) => (
-            <View style={{
-              width: 44, height: 44, borderRadius: 22,
-              backgroundColor: focused ? '#10b981' : 'transparent',
-              justifyContent: 'center', alignItems: 'center'
-            }}>
-              <MaterialIcons name="local-shipping" size={size} color={focused ? '#fff' : '#64748b'} />
-            </View>
+            <Ionicons name={focused ? 'rocket' : 'rocket-outline'} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
           ),
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          headerTitle: 'Tarix',
+          headerTitle: 'Tarix Arxivi',
           tabBarIcon: ({ size, focused }) => (
-            <View style={{
-              width: 44, height: 44, borderRadius: 22,
-              backgroundColor: focused ? '#10b981' : 'transparent',
-              justifyContent: 'center', alignItems: 'center'
-            }}>
-              <MaterialIcons name="history" size={size} color={focused ? '#fff' : '#64748b'} />
-            </View>
+            <Ionicons name={focused ? 'time' : 'time-outline'} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          headerTitle: 'Profil',
+          headerTitle: 'Profil Sozlamalari',
           tabBarIcon: ({ size, focused }) => (
-            <View style={{
-              width: 44, height: 44, borderRadius: 22,
-              backgroundColor: focused ? '#10b981' : 'transparent',
-              justifyContent: 'center', alignItems: 'center'
-            }}>
-              <MaterialIcons name="person" size={size} color={focused ? '#fff' : '#64748b'} />
-            </View>
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
           ),
         }}
       />
