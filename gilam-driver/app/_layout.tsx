@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { getToken, getUser, User } from '../lib/api';
@@ -65,7 +65,11 @@ export default function RootLayout() {
   return (
     <AuthContext.Provider value={{ user, setUser, isLoading }}>
       <StatusBar style="light" />
-      <Slot />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="chat" options={{ headerShown: true, presentation: 'modal' }} />
+      </Stack>
     </AuthContext.Provider>
   );
 }
