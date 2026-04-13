@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Gilam Haydovchi",
+    "slug": "gilam-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "gilam-driver",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#059669"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uz.ecos.gilam.driver",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Haydovchi lokatsiyasini kuzatish uchun kerak"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#059669"
+      },
+      "package": "uz.ecos.gilam.driver",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CALL_PHONE",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak" }
+      ]
+    ]
+  }
+}
