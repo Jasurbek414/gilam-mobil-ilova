@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { View } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -7,60 +8,83 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#ffffff',
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
-          borderBottomColor: '#E2E8F0',
+          borderBottomColor: '#f1f5f9',
         },
-        headerTintColor: '#000000',
+        headerTintColor: '#0f172a',
         headerTitleStyle: {
           fontWeight: '800',
-          fontSize: 16,
-          letterSpacing: 0.5,
+          fontSize: 17,
         },
-        tabBarActiveTintColor: '#000000',
-        tabBarInactiveTintColor: '#A0AEC0',
+        tabBarActiveTintColor: '#10b981',
+        tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#E2E8F0',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-          elevation: 0,
-          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          elevation: 20,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -10 },
+          shadowOpacity: 0.05,
+          shadowRadius: 20,
+          backgroundColor: '#ffffff',
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 10,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: '700',
-          letterSpacing: 0.5,
+          marginTop: 2,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Buyurtmalar',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="local-shipping" size={size} color={color} />
+          headerTitle: 'Aktiv Buyurtmalar',
+          tabBarLabel: 'Buyurtmalar',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{
+              padding: 4, 
+              borderRadius: 12, 
+              backgroundColor: focused ? '#ecfdf5' : 'transparent'
+            }}>
+              <MaterialIcons name="local-shipping" size={size} color={color} />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: 'Tarix',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="history" size={size} color={color} />
+          headerTitle: 'Tarix',
+          tabBarLabel: 'Tarix',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{
+              padding: 4, 
+              borderRadius: 12, 
+              backgroundColor: focused ? '#ecfdf5' : 'transparent'
+            }}>
+              <MaterialIcons name="history" size={size} color={color} />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" size={size} color={color} />
+          headerTitle: 'Shaxsiy Profil',
+          tabBarLabel: 'Profil',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{
+              padding: 4, 
+              borderRadius: 12, 
+              backgroundColor: focused ? '#ecfdf5' : 'transparent'
+            }}>
+              <MaterialIcons name="person" size={size} color={color} />
+            </View>
           ),
         }}
       />

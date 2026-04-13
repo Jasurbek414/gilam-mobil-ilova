@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
 import { logout } from '../../lib/api';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, setUser } = useAuth();
@@ -28,16 +29,33 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <View style={styles.row}>
-          <Text style={styles.label}>Telefon</Text>
-          <Text style={styles.value}>{user.phone}</Text>
+          <View style={styles.rowIcon}>
+            <MaterialIcons name="phone" size={20} color="#64748b" />
+          </View>
+          <View style={styles.rowContent}>
+             <Text style={styles.label}>Telefon</Text>
+             <Text style={styles.value}>{user.phone}</Text>
+          </View>
         </View>
+
         <View style={styles.row}>
-          <Text style={styles.label}>Kompaniya</Text>
-          <Text style={styles.value}>{user.company?.name || user.companyId || '—'}</Text>
+           <View style={styles.rowIcon}>
+            <MaterialIcons name="business" size={20} color="#64748b" />
+          </View>
+          <View style={styles.rowContent}>
+             <Text style={styles.label}>Kompaniya</Text>
+             <Text style={styles.value}>{user.company?.name || user.companyId || '—'}</Text>
+          </View>
         </View>
+
         <View style={[styles.row, { borderBottomWidth: 0 }]}>
-          <Text style={styles.label}>ID</Text>
-          <Text style={styles.valueSmall}>{user.id}</Text>
+           <View style={styles.rowIcon}>
+            <MaterialIcons name="badge" size={20} color="#64748b" />
+          </View>
+          <View style={styles.rowContent}>
+             <Text style={styles.label}>ID Nomer</Text>
+             <Text style={styles.valueSmall}>{user.id}</Text>
+          </View>
         </View>
       </View>
 
@@ -46,32 +64,37 @@ export default function ProfileScreen() {
         onPress={() => setShowLogout(true)}
         activeOpacity={0.8}
       >
-        <Text style={styles.logoutText}>TIZIMDAN CHIQISH</Text>
+        <Text style={styles.logoutText}>Tizimdan chiqish</Text>
       </TouchableOpacity>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Gilam SDK • v1.0.0</Text>
       </View>
 
-      {/* Logout Modal */}
+      {/* Modern Enhanced Modal */}
       <Modal visible={showLogout} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Tizimdan chiqish</Text>
-            <Text style={styles.modalText}>Haqiqatan ham chiqmoqchimisiz?</Text>
+            <View style={styles.modalWarningIcon}>
+               <MaterialIcons name="logout" size={32} color="#ef4444" />
+            </View>
+            <Text style={styles.modalTitle}>Chiqish</Text>
+            <Text style={styles.modalText}>Haqiqatan ham o'z hisobingizdan chiqmoqchimisiz?</Text>
             
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnCancel]}
                 onPress={() => setShowLogout(false)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.modalBtnTextCancel}>BEKOR QILISH</Text>
+                <Text style={styles.modalBtnTextCancel}>Bekor qilish</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnConfirm]}
                 onPress={handleLogout}
+                activeOpacity={0.7}
               >
-                <Text style={styles.modalBtnTextConfirm}>CHIQISH</Text>
+                <Text style={styles.modalBtnTextConfirm}>Chiqish</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -82,43 +105,51 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', padding: 24 },
-  header: { alignItems: 'center', marginBottom: 40, paddingTop: 24 },
+  container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 32 },
+  header: { alignItems: 'center', marginBottom: 40 },
   avatar: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: '#F7FAFC',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    width: 96, height: 96, borderRadius: 48, backgroundColor: '#ffffff',
     justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    shadowColor: '#10b981', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 4,
   },
-  avatarText: { fontSize: 32, color: '#000000', fontWeight: '800' },
-  name: { fontSize: 24, fontWeight: '900', color: '#000000', letterSpacing: -0.5, marginBottom: 4 },
-  roleText: { fontSize: 11, fontWeight: '700', color: '#A0AEC0', letterSpacing: 2 },
+  avatarText: { fontSize: 36, color: '#10b981', fontWeight: '900' },
+  name: { fontSize: 24, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
+  roleText: { fontSize: 13, fontWeight: '700', color: '#94a3b8', letterSpacing: 1 },
   section: {
-    borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
     marginBottom: 32,
+    paddingHorizontal: 8,
+    shadowColor: '#64748b', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.05, shadowRadius: 16, elevation: 2,
   },
   row: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: '#F7FAFC',
+    flexDirection: 'row', alignItems: 'center',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
   },
-  label: { fontSize: 12, fontWeight: '600', color: '#718096', textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 14, fontWeight: '600', color: '#1A202C' },
-  valueSmall: { fontSize: 12, color: '#A0AEC0', fontFamily: 'monospace' },
+  rowIcon: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center', marginRight: 16
+  },
+  rowContent: { flex: 1 },
+  label: { fontSize: 13, fontWeight: '600', color: '#64748b', marginBottom: 2 },
+  value: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  valueSmall: { fontSize: 13, color: '#94a3b8', fontFamily: 'monospace', fontWeight: '500' },
   logoutBtn: {
-    padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#E53E3E',
-    alignItems: 'center',
+    padding: 18, borderRadius: 16, backgroundColor: '#fef2f2',
+    alignItems: 'center', borderWidth: 1, borderColor: '#fee2e2'
   },
-  logoutText: { color: '#E53E3E', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  logoutText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
   footer: { alignItems: 'center', marginTop: 40 },
-  footerText: { fontSize: 11, color: '#CBD5E0', fontWeight: '500', letterSpacing: 1 },
+  footerText: { fontSize: 12, color: '#cbd5e1', fontWeight: '600' },
   
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
-  modalContent: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#000000', marginBottom: 8 },
-  modalText: { fontSize: 14, color: '#4A5568', marginBottom: 32 },
-  modalActions: { flexDirection: 'row', gap: 12 },
-  modalBtn: { flex: 1, padding: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1 },
-  modalBtnCancel: { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
-  modalBtnConfirm: { backgroundColor: '#000000', borderColor: '#000000' },
-  modalBtnTextCancel: { color: '#4A5568', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  modalBtnTextConfirm: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'center', padding: 24 },
+  modalContent: { backgroundColor: '#ffffff', borderRadius: 32, padding: 32, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 10 },
+  modalWarningIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 8 },
+  modalText: { fontSize: 15, color: '#64748b', marginBottom: 32, textAlign: 'center', lineHeight: 22 },
+  modalActions: { flexDirection: 'row', gap: 12, width: '100%' },
+  modalBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
+  modalBtnCancel: { backgroundColor: '#f1f5f9' },
+  modalBtnConfirm: { backgroundColor: '#ef4444' },
+  modalBtnTextCancel: { color: '#475569', fontSize: 15, fontWeight: '700' },
+  modalBtnTextConfirm: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
 });

@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, Alert,
-  ActivityIndicator
+  ActivityIndicator, Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login } from '../lib/api';
 import { useAuth } from './_layout';
+import { MaterialIcons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -37,54 +40,73 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.topSection}>
-        <Text style={styles.brand}>GILAM</Text>
-        <Text style={styles.appType}>Haydovchi</Text>
-      </View>
-
-      <View style={styles.formSection}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Telefon Raqam</Text>
-          <TextInput
-            style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="+998"
-            placeholderTextColor="#A0AEC0"
-            keyboardType="phone-pad"
-            autoCapitalize="none"
-          />
+      <View style={styles.content}>
+        
+        {/* Brand Header */}
+        <View style={styles.header}>
+          <View style={styles.iconCircle}>
+             <MaterialIcons name="local-shipping" size={32} color="#10b981" />
+          </View>
+          <Text style={styles.title}>Gilam App</Text>
+          <Text style={styles.subtitle}>Logistika va yetkazib berish xizmati qismi</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Parol</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••"
-            placeholderTextColor="#A0AEC0"
-            secureTextEntry
-          />
+        {/* Input Form */}
+        <View style={styles.form}>
+          <View style={styles.inputWrapper}>
+             <View style={styles.inputPrefix}>
+               <MaterialIcons name="phone" size={20} color="#64748b" />
+             </View>
+             <TextInput
+               style={styles.input}
+               value={phone}
+               onChangeText={setPhone}
+               placeholder="Telefon raqamingiz"
+               placeholderTextColor="#94a3b8"
+               keyboardType="phone-pad"
+               autoCapitalize="none"
+               cursorColor="#10b981"
+             />
+          </View>
+
+          <View style={styles.inputWrapper}>
+             <View style={styles.inputPrefix}>
+               <MaterialIcons name="lock" size={20} color="#64748b" />
+             </View>
+             <TextInput
+               style={styles.input}
+               value={password}
+               onChangeText={setPassword}
+               placeholder="Parolingiz"
+               placeholderTextColor="#94a3b8"
+               secureTextEntry
+               cursorColor="#10b981"
+             />
+          </View>
+
+          <TouchableOpacity style={styles.forgotBtn} activeOpacity={0.6}>
+            <Text style={styles.forgotText}>Parolni tiklash</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.loginBtn, loading && styles.loginBtnDisabled]} 
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginBtnText}>Tizimga kirish</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>TIZIMGA KIRISH</Text>
-          )}
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Korporativ Kirish</Text>
-      </View>
+      <Text style={styles.secureBadge}>
+        <MaterialIcons name="verified-user" size={12} color="#10b981" /> Himoyalangan ulanish
+      </Text>
     </KeyboardAvoidingView>
   );
 }
@@ -92,78 +114,108 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
+    backgroundColor: '#ffffff',
   },
-  topSection: {
+  content: {
     flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
   },
-  brand: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: -1,
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
-  appType: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#718096',
-    letterSpacing: 2,
-    marginTop: 4,
-    textTransform: 'uppercase',
-  },
-  formSection: {
-    flex: 1.5,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4A5568',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#1A202C',
-    backgroundColor: '#F7FAFC',
-  },
-  button: {
-    height: 56,
-    backgroundColor: '#000000',
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: '#ecfdf5',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
-    marginTop: 8,
+    marginBottom: 20,
   },
-  buttonDisabled: {
-    backgroundColor: '#CBD5E0',
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.5,
   },
-  buttonText: {
-    color: '#FFFFFF',
+  subtitle: {
     fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  footer: {
-    paddingBottom: 40,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#A0AEC0',
+    color: '#64748b',
+    marginTop: 6,
+    textAlign: 'center',
     fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  },
+  form: {
+    width: '100%',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    height: 60,
+    overflow: 'hidden',
+  },
+  inputPrefix: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#f1f5f9',
+    height: '100%',
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: 16,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginBottom: 32,
+  },
+  forgotText: {
+    fontSize: 13,
+    color: '#10b981',
+    fontWeight: '700',
+  },
+  loginBtn: {
+    width: '100%',
+    height: 60,
+    backgroundColor: '#10b981',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  loginBtnDisabled: {
+    backgroundColor: '#94a3b8',
+    shadowOpacity: 0,
+  },
+  loginBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  secureBadge: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+    alignItems: 'center',
   }
 });
