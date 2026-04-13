@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView } from 'react-native';
 import { useAuth } from '../_layout';
 import { getMyOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -75,10 +76,17 @@ export default function OrdersScreen() {
                 </View>
               )}
 
-              <View style={styles.footerData}>
-                 <Text style={styles.fText}>{item.items?.length || 0} dona</Text>
-                 <Text style={styles.fMoney}>{Number(item.totalAmount).toLocaleString()} So'm</Text>
-              </View>
+              <TouchableOpacity 
+                 style={styles.footerData} 
+                 activeOpacity={0.6}
+                 onPress={() => setSelectedOrder(item)}
+              >
+                 <View>
+                    <Text style={styles.fText}>{item.items?.length || 0} dona narsa <Ionicons name="information-circle-outline" size={14} color="#10b981"/></Text>
+                    <Text style={styles.fMoney}>{Number(item.totalAmount).toLocaleString()} So'm</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color="#71717a" />
+              </TouchableOpacity>
 
               {config.next && (
                  <TouchableOpacity 
@@ -94,6 +102,62 @@ export default function OrdersScreen() {
           );
         }}
       />
+
+      {/* Modern Order Details Modal */}
+      <Modal visible={!!selectedOrder} transparent animationType="slide">
+         {selectedOrder && (
+           <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                 <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Buyurtma ma'lumoti</Text>
+                    <TouchableOpacity onPress={() => setSelectedOrder(null)} style={styles.closeBtn}>
+                       <Ionicons name="close" size={24} color="#ffffff" />
+                    </TouchableOpacity>
+                 </View>
+
+                 <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                    
+                    <View style={styles.mRow}>
+                       <Text style={styles.mLabel}>Buyurtma ID:</Text>
+                       <Text style={styles.mValue}>#{selectedOrder.id.substring(0, 8)}</Text>
+                    </View>
+                    
+                    <View style={styles.mRow}>
+                       <Text style={styles.mLabel}>Yaratilgan vaqt:</Text>
+                       <Text style={styles.mValue}>{new Date(selectedOrder.createdAt).toLocaleString('uz-UZ')}</Text>
+                    </View>
+
+                    {selectedOrder.notes ? (
+                       <View style={styles.mNotesBox}>
+                          <Text style={styles.mLabel}>Izohlar:</Text>
+                          <Text style={styles.mNotesText}>{selectedOrder.notes}</Text>
+                       </View>
+                    ) : null}
+
+                    <Text style={styles.sectionTitle}>Narsalar ro'yxati</Text>
+                    {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
+                        <Text style={styles.emptyItems}>Ichida narsalar hali biriktirilmagan.</Text>
+                    ) : (
+                       selectedOrder.items.map((it, idx) => (
+                          <View key={it.id || idx} style={styles.itemBox}>
+                             <View style={styles.itemHeader}>
+                                <Text style={styles.itemName}>{it.service?.name || 'Noma\'lum xizmat'}</Text>
+                                <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                             </View>
+                             <View style={styles.itemDetails}>
+                                <Text style={styles.itemMetric}>{it.quantity} qism</Text>
+                                {(it.width && it.length) ? (
+                                   <Text style={styles.itemDim}>{it.width} x {it.length} = {(it.width * it.length).toFixed(2)} m²</Text>
+                                ) : null}
+                             </View>
+                          </View>
+                       ))
+                    )}
+                 </ScrollView>
+              </View>
+           </View>
+         )}
+      </Modal>
     </View>
   );
 }
@@ -112,12 +176,33 @@ const styles = StyleSheet.create({
   cAddress: { fontSize: 13, color: '#71717a', lineHeight: 18 },
   actionGrid: { alignItems: 'center', marginLeft: 16 },
   iconBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#27272a' },
-  footerData: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 16 },
-  fText: { fontSize: 14, color: '#a1a1aa', fontWeight: '700' },
-  fMoney: { fontSize: 20, color: '#ffffff', fontWeight: '900' },
+  footerData: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 16, backgroundColor: '#27272a', padding: 12, borderRadius: 16 },
+  fText: { fontSize: 13, color: '#10b981', fontWeight: '700', marginBottom: 4 },
+  fMoney: { fontSize: 18, color: '#ffffff', fontWeight: '900' },
   mainBtn: { backgroundColor: '#10b981', height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   mainBtnText: { color: '#09090b', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
   empty: { alignItems: 'center', marginTop: 100 },
   emptyTitle: { fontSize: 20, color: '#ffffff', fontWeight: '800', marginTop: 24 },
-  emptyDesc: { fontSize: 14, color: '#71717a', textAlign: 'center', paddingHorizontal: 40, marginTop: 8 }
+  emptyDesc: { fontSize: 14, color: '#71717a', textAlign: 'center', paddingHorizontal: 40, marginTop: 8 },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
+  modalContent: { backgroundColor: '#18181b', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '75%', padding: 24, borderWidth: 1, borderColor: '#27272a' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#27272a', paddingBottom: 16, marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff' },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center' },
+  modalScroll: { flex: 1 },
+  mRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  mLabel: { fontSize: 14, color: '#a1a1aa', fontWeight: '600' },
+  mValue: { fontSize: 14, color: '#ffffff', fontWeight: '800' },
+  mNotesBox: { backgroundColor: '#09090b', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#27272a', marginTop: 8, marginBottom: 16 },
+  mNotesText: { color: '#facc15', fontSize: 13, marginTop: 4, lineHeight: 18, fontWeight: '600' },
+  sectionTitle: { fontSize: 16, color: '#ffffff', fontWeight: '800', marginTop: 16, marginBottom: 12 },
+  emptyItems: { color: '#71717a', fontSize: 14, fontStyle: 'italic' },
+  itemBox: { backgroundColor: '#09090b', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#27272a', marginBottom: 12 },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  itemName: { fontSize: 15, color: '#ffffff', fontWeight: '700', flex: 1 },
+  itemPrice: { fontSize: 15, color: '#10b981', fontWeight: '800', marginLeft: 8 },
+  itemDetails: { flexDirection: 'row', gap: 16 },
+  itemMetric: { fontSize: 13, color: '#a1a1aa' },
+  itemDim: { fontSize: 13, color: '#71717a' },
 });
