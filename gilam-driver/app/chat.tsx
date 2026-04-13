@@ -133,19 +133,22 @@ export default function ChatScreen() {
               );
             }}
           />
-
-          <View style={styles.inputArea}>
-             <TextInput
-               style={styles.input}
-               value={inputText}
-               onChangeText={setInputText}
-               placeholder="Xabar yozing..."
-               placeholderTextColor="#71717a"
-               cursorColor="#10b981"
-             />
-             <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} disabled={!inputText.trim()}>
-                <Ionicons name="send" size={20} color={inputText.trim() ? '#10b981' : '#27272a'} />
-             </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Xabar yozing..."
+              placeholderTextColor="#71717a"
+              multiline
+            />
+            <TouchableOpacity 
+               style={[styles.sendBtn, (!inputText.trim() || !operatorId) && {backgroundColor: '#3f3f46'}]} 
+               onPress={sendMessage}
+               disabled={!inputText.trim() || !operatorId}
+            >
+              <Ionicons name="send" size={18} color="#fff" />
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       )}
@@ -158,16 +161,16 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16, flexGrow: 1, justifyContent: 'flex-end' },
   centerEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 60 },
-  emptyText: { color: '#71717a', marginTop: 12, fontSize: 14 },
-  msgRow: { width: '100%', marginBottom: 16, flexDirection: 'row' },
+  emptyText: { color: '#71717a', fontSize: 14, marginTop: 12 },
+  msgRow: { flexDirection: 'row', marginBottom: 12 },
   msgRight: { justifyContent: 'flex-end' },
   msgLeft: { justifyContent: 'flex-start' },
   bubble: { maxWidth: '80%', padding: 12, borderRadius: 16 },
   bubbleMe: { backgroundColor: '#10b981', borderBottomRightRadius: 4 },
-  bubbleThem: { backgroundColor: '#18181b', borderWidth: 1, borderColor: '#27272a', borderBottomLeftRadius: 4 },
-  msgText: { fontSize: 15, fontWeight: '500' },
-  timeText: { fontSize: 11, marginTop: 4, alignSelf: 'flex-end', fontWeight: '700' },
-  inputArea: { flexDirection: 'row', padding: 12, backgroundColor: '#09090b', borderTopWidth: 1, borderTopColor: '#27272a', alignItems: 'center', paddingBottom: Platform.OS === 'ios' ? 24 : 12 },
-  input: { flex: 1, minHeight: 48, backgroundColor: '#18181b', borderRadius: 24, paddingHorizontal: 16, color: '#ffffff', fontSize: 15, borderWidth: 1, borderColor: '#27272a', marginRight: 12 },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#27272a' }
+  bubbleThem: { backgroundColor: '#27272a', borderBottomLeftRadius: 4 },
+  msgText: { fontSize: 15, lineHeight: 20 },
+  timeText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
+  inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#18181b', borderTopWidth: 1, borderTopColor: '#27272a', alignItems: 'flex-end' },
+  input: { flex: 1, backgroundColor: '#27272a', color: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, minHeight: 40, maxHeight: 100 },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center', marginLeft: 8, marginBottom: 2 },
 });
