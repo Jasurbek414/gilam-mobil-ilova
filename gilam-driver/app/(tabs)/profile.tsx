@@ -105,7 +105,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
+  container: { flexGrow: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 120 },
   header: { alignItems: 'center', marginBottom: 40 },
   avatar: {
     width: 96, height: 96, borderRadius: 48, backgroundColor: '#ffffff',

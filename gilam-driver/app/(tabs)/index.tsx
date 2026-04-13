@@ -168,7 +168,7 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  listContent: { padding: 16, paddingBottom: 24, paddingTop: 16 },
+  listContent: { padding: 16, paddingBottom: 100, paddingTop: 16 },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 24,

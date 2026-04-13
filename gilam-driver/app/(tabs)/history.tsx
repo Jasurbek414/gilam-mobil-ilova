@@ -108,7 +108,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  list: { padding: 16 },
+  list: { padding: 16, paddingBottom: 100 },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 20,

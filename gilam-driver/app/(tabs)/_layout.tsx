@@ -21,37 +21,37 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: '#10b981',
         tabBarInactiveTintColor: '#94a3b8',
+        tabBarShowLabel: false,
         tabBarStyle: {
-          borderTopWidth: 0,
-          elevation: 20,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -10 },
-          shadowOpacity: 0.05,
+          position: 'absolute',
+          bottom: 16,
+          left: 24,
+          right: 24,
+          elevation: 10,
+          shadowColor: '#10b981',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.15,
           shadowRadius: 20,
-          backgroundColor: '#ffffff',
-          borderTopColor: 'transparent',
-          minHeight: 65,
-          paddingTop: 10,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-          marginTop: 2,
+          backgroundColor: '#1e293b',
+          borderRadius: 32,
+          height: 64,
+          borderTopWidth: 0,
+          paddingBottom: 0,
+          paddingTop: 0,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          headerTitle: 'Aktiv Buyurtmalar',
-          tabBarLabel: 'Buyurtmalar',
-          tabBarIcon: ({ color, size, focused }) => (
+          headerTitle: 'Buyurtmalar',
+          tabBarIcon: ({ size, focused }) => (
             <View style={{
-              padding: 4, 
-              borderRadius: 12, 
-              backgroundColor: focused ? '#ecfdf5' : 'transparent'
+              width: 44, height: 44, borderRadius: 22,
+              backgroundColor: focused ? '#10b981' : 'transparent',
+              justifyContent: 'center', alignItems: 'center'
             }}>
-              <MaterialIcons name="local-shipping" size={size} color={color} />
+              <MaterialIcons name="local-shipping" size={size} color={focused ? '#fff' : '#64748b'} />
             </View>
           ),
         }}
@@ -60,14 +60,13 @@ export default function TabLayout() {
         name="history"
         options={{
           headerTitle: 'Tarix',
-          tabBarLabel: 'Tarix',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ size, focused }) => (
             <View style={{
-              padding: 4, 
-              borderRadius: 12, 
-              backgroundColor: focused ? '#ecfdf5' : 'transparent'
+              width: 44, height: 44, borderRadius: 22,
+              backgroundColor: focused ? '#10b981' : 'transparent',
+              justifyContent: 'center', alignItems: 'center'
             }}>
-              <MaterialIcons name="history" size={size} color={color} />
+              <MaterialIcons name="history" size={size} color={focused ? '#fff' : '#64748b'} />
             </View>
           ),
         }}
@@ -75,15 +74,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          headerTitle: 'Shaxsiy Profil',
-          tabBarLabel: 'Profil',
-          tabBarIcon: ({ color, size, focused }) => (
+          headerTitle: 'Profil',
+          tabBarIcon: ({ size, focused }) => (
             <View style={{
-              padding: 4, 
-              borderRadius: 12, 
-              backgroundColor: focused ? '#ecfdf5' : 'transparent'
+              width: 44, height: 44, borderRadius: 22,
+              backgroundColor: focused ? '#10b981' : 'transparent',
+              justifyContent: 'center', alignItems: 'center'
             }}>
-              <MaterialIcons name="person" size={size} color={color} />
+              <MaterialIcons name="person" size={size} color={focused ? '#fff' : '#64748b'} />
             </View>
           ),
         }}
