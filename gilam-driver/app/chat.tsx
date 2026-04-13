@@ -12,6 +12,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [operatorId, setOperatorId] = useState<string | null>(null);
+  const [operatorName, setOperatorName] = useState('Operator');
   const [loading, setLoading] = useState(true);
   const socketRef = useRef<Socket | null>(null);
   const listRef = useRef<FlatList>(null);
@@ -26,6 +27,8 @@ export default function ChatScreen() {
         const supportReq = await request<any>('/messages/support-contact');
         if (supportReq && supportReq.id) {
            setOperatorId(supportReq.id);
+           if (supportReq.fullName) setOperatorName(supportReq.fullName);
+           
            // Also fetch history
            const hist = await request<any[]>(`/messages/history/${supportReq.id}`);
            setMessages(hist || []);
@@ -79,7 +82,7 @@ export default function ChatScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{
-        title: 'Operator bilan Chat',
+        title: `${operatorName} bilan Chat`,
         headerStyle: { backgroundColor: '#09090b' },
         headerTintColor: '#ffffff',
         headerLeft: () => (
@@ -113,11 +116,18 @@ export default function ChatScreen() {
               const isMe = item.senderId === user?.id;
               return (
                 <View style={[styles.msgRow, isMe ? styles.msgRight : styles.msgLeft]}>
-                  <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
-                    <Text style={[styles.msgText, {color: isMe?'#09090b':'#f4f4f5'}]}>{item.text}</Text>
-                    <Text style={[styles.timeText, {color: isMe?'#064e3b':'#71717a'}]}>
-                       {new Date(item.createdAt).toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'})}
-                    </Text>
+                  <View style={{flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start'}}>
+                    {!isMe && (
+                      <Text style={{fontSize: 11, color: '#a1a1aa', marginBottom: 4, marginLeft: 4}}>
+                        {item.sender?.fullName || operatorName}
+                      </Text>
+                    )}
+                    <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
+                      <Text style={[styles.msgText, {color: isMe?'#09090b':'#f4f4f5'}]}>{item.text}</Text>
+                      <Text style={[styles.timeText, {color: isMe?'#064e3b':'#71717a'}]}>
+                         {new Date(item.createdAt).toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'})}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               );
