@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
 import { getMyOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,15 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
+      <Tabs.Screen 
+        options={{
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.push('/chat')} style={{ marginRight: 20 }}>
+               <Ionicons name="chatbubbles" size={26} color="#10b981" />
+            </TouchableOpacity>
+          )
+        }} 
+      />
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
