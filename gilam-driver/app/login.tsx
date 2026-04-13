@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { login } from '../lib/api';
 import { useAuth } from './_layout';
 import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -36,11 +37,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
         
         {/* Brand Header */}
         <View style={styles.header}>
@@ -108,6 +110,7 @@ export default function LoginScreen() {
         <MaterialIcons name="verified-user" size={12} color="#10b981" /> Himoyalangan ulanish
       </Text>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

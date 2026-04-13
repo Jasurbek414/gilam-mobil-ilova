@@ -29,8 +29,8 @@ export default function TabLayout() {
           shadowOpacity: 0.05,
           shadowRadius: 20,
           backgroundColor: '#ffffff',
-          height: 65,
-          paddingBottom: 10,
+          borderTopColor: 'transparent',
+          minHeight: 65,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
