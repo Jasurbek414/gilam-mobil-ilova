@@ -1,12 +1,19 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 
 export default function TabLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
+        headerRight: () => (
+          <TouchableOpacity onPress={() => router.push('/chat')} style={{ marginRight: 20 }}>
+             <Ionicons name="chatbubbles" size={24} color="#10b981" />
+          </TouchableOpacity>
+        ),
         headerStyle: {
           backgroundColor: '#09090b',
           elevation: 0,
