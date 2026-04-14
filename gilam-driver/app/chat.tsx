@@ -5,10 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import io, { Socket } from 'socket.io-client';
 import { getToken, request } from '../lib/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ChatScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [operatorId, setOperatorId] = useState<string | null>(null);
@@ -133,7 +135,7 @@ export default function ChatScreen() {
               );
             }}
           />
-          <View style={styles.inputContainer}>
+          <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
             <TextInput
               style={styles.input}
               value={inputText}
