@@ -81,9 +81,25 @@ export default function HistoryScreen() {
                        <Text style={[styles.mValue, { color: selectedOrder.status === 'CANCELLED' ? '#ef4444' : '#10b981' }]}>{selectedOrder.status}</Text>
                     </View>
                     <View style={styles.mRow}>
-                       <Text style={styles.mLabel}>Yakunlandi:</Text>
+                       <Text style={styles.mLabel}>Sana:</Text>
                        <Text style={styles.mValue}>{new Date(selectedOrder.updatedAt).toLocaleString('uz-UZ')}</Text>
                     </View>
+                    
+                    {selectedOrder.customer && (
+                      <View style={styles.cDetailBox}>
+                         <Text style={styles.cDetailTitle}>Mijoz Ma'lumotlari</Text>
+                         <Text style={styles.cDetailText}><Ionicons name="person" size={12} color="#10b981"/> {selectedOrder.customer.fullName}</Text>
+                         <Text style={styles.cDetailText}><Ionicons name="call" size={12} color="#10b981"/> {selectedOrder.customer.phone1}</Text>
+                         <Text style={styles.cDetailText}><Ionicons name="location" size={12} color="#10b981"/> {selectedOrder.customer.address || "Manzil kiritilmagan"}</Text>
+                      </View>
+                    )}
+
+                    {selectedOrder.notes && (
+                      <View style={styles.mRow}>
+                         <Text style={styles.mLabel}>Izoh (Notes):</Text>
+                         <Text style={[styles.mValue, { flex: 1, textAlign: 'right', marginLeft: 16 }]}>{selectedOrder.notes}</Text>
+                      </View>
+                    )}
 
                     <Text style={styles.sectionTitle}>Xizmatlar ({selectedOrder.items?.length || 0})</Text>
                     {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
@@ -134,7 +150,10 @@ const styles = StyleSheet.create({
   mRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   mLabel: { fontSize: 14, color: '#a1a1aa', fontWeight: '600' },
   mValue: { fontSize: 14, color: '#ffffff', fontWeight: '800' },
-  sectionTitle: { fontSize: 16, color: '#ffffff', fontWeight: '800', marginTop: 16, marginBottom: 12 },
+  cDetailBox: { backgroundColor: '#09090b', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#27272a', marginBottom: 12, marginTop: 4 },
+  cDetailTitle: { fontSize: 12, textTransform: 'uppercase', color: '#10b981', fontWeight: '900', marginBottom: 8, letterSpacing: 1 },
+  cDetailText: { fontSize: 13, color: '#e4e4e7', fontWeight: '600', marginBottom: 4 },
+  sectionTitle: { fontSize: 16, color: '#ffffff', fontWeight: '800', marginTop: 8, marginBottom: 12 },
   emptyItems: { color: '#71717a', fontSize: 14, fontStyle: 'italic' },
   itemBox: { backgroundColor: '#09090b', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#27272a', marginBottom: 12 },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
