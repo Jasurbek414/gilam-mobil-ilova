@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { login, getCompanies } from '../lib/api';
+import { login, getCompanies, setUser as setSecureUser } from '../lib/api';
 import { useAuth } from './_layout';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
@@ -53,7 +53,8 @@ export default function LoginScreen() {
       const user = await login(phone.trim(), password.trim(), companyName.trim());
       // Override or append the explicit appRole from Login
       const customizedUser = { ...user, appRole };
-      setUser(customizedUser);
+      await setSecureUser(customizedUser); // save permanently for when app restarts
+      setUser(customizedUser); // update react context
       router.replace('/');
     } catch (err: any) {
       Alert.alert('Xatolik', err.message || 'Kirishda xatolik');
