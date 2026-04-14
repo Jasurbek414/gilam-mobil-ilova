@@ -33,6 +33,7 @@ export interface User {
   fullName: string;
   phone: string;
   role: string;
+  appRole?: string;
   companyId: string;
   company?: { id: string; name: string };
 }
