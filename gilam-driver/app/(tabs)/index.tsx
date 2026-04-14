@@ -111,12 +111,17 @@ export default function OrdersScreen() {
                  </View>
               </View>
               
-              <Text style={styles.cAddressMini} numberOfLines={1}>
-                 <Ionicons name="location" size={12} color="#71717a" /> {item.customer?.address || "Manzil kiritilmagan"}
-              </Text>
+              {user?.appRole !== 'FACILITY' && (
+                <Text style={styles.cAddressMini} numberOfLines={1}>
+                   <Ionicons name="location" size={12} color="#71717a" /> {item.customer?.address || "Manzil kiritilmagan"}
+                </Text>
+              )}
 
               <View style={styles.cFooterMini}>
-                 <Text style={styles.cMetaMini}>{item.items?.length || 0} narsa • {Number(item.totalAmount).toLocaleString()} sum</Text>
+                 <Text style={styles.cMetaMini}>
+                   {item.items?.length || 0} xil narsa
+                   {user?.appRole !== 'FACILITY' ? ` • ${Number(item.totalAmount).toLocaleString()} sum` : ''}
+                 </Text>
                  <Ionicons name="chevron-forward" size={16} color="#71717a" />
               </View>
             </TouchableOpacity>
@@ -149,27 +154,31 @@ export default function OrdersScreen() {
                     </View>
 
                     <View style={styles.mRow}>
-                        <Text style={styles.mLabel}>Xaridor:</Text>
-                        <Text style={styles.mValue}>{selectedOrder.customer?.fullName}</Text>
-                     </View>
+                       <Text style={styles.mLabel}>Buyurtmachi:</Text>
+                       <Text style={styles.mValue}>{selectedOrder.customer?.fullName}</Text>
+                    </View>
 
-                     <View style={styles.mRow}>
-                        <Text style={styles.mLabel}>Telefon:</Text>
-                        <Text style={styles.mValue}>{selectedOrder.customer?.phone1}</Text>
-                     </View>
+                    {user?.appRole !== 'FACILITY' && (
+                      <>
+                        <View style={styles.mRow}>
+                           <Text style={styles.mLabel}>Telefon:</Text>
+                           <Text style={styles.mValue}>{selectedOrder.customer?.phone1}</Text>
+                        </View>
 
-                     {selectedOrder.customer && (
-                       <View style={styles.modalActionGrid}>
-                          <TouchableOpacity style={styles.mBtnCall} onPress={() => Linking.openURL(`tel:${selectedOrder.customer!.phone1}`)}>
-                             <Ionicons name="call" size={20} color="#fff" />
-                             <Text style={styles.mBtnText}>Qo'ng'iroq</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.mBtnMap} onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${selectedOrder.customer!.address!}`)}>
-                             <Ionicons name="navigate" size={20} color="#fff" />
-                             <Text style={styles.mBtnText}>Xarita</Text>
-                          </TouchableOpacity>
-                       </View>
-                     )}
+                        {selectedOrder.customer && (
+                          <View style={styles.modalActionGrid}>
+                             <TouchableOpacity style={styles.mBtnCall} onPress={() => Linking.openURL(`tel:${selectedOrder.customer!.phone1}`)}>
+                                <Ionicons name="call" size={20} color="#fff" />
+                                <Text style={styles.mBtnText}>Qo'ng'iroq</Text>
+                             </TouchableOpacity>
+                             <TouchableOpacity style={styles.mBtnMap} onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${selectedOrder.customer!.address!}`)}>
+                                <Ionicons name="navigate" size={20} color="#fff" />
+                                <Text style={styles.mBtnText}>Xarita</Text>
+                             </TouchableOpacity>
+                          </View>
+                        )}
+                      </>
+                    )}
 
                      {selectedOrder.notes ? (
                         <View style={styles.mNotesBox}>
@@ -186,7 +195,9 @@ export default function OrdersScreen() {
                            <View key={it.id || idx} style={styles.itemBox}>
                               <View style={styles.itemHeader}>
                                  <Text style={styles.itemName}>{it.service?.name || 'Noma\'lum xizmat'}</Text>
-                                 <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                                 {user?.appRole !== 'FACILITY' && (
+                                   <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                                 )}
                               </View>
                               <View style={styles.itemDetails}>
                                  <Text style={styles.itemMetric}>{it.quantity} qism</Text>
