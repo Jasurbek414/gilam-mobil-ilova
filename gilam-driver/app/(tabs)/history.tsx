@@ -77,7 +77,10 @@ export default function HistoryScreen() {
              <View style={styles.rowInfo}>
                 <Text style={styles.idText}>#{item.id.substring(0, 8)}</Text>
                 <Text style={[styles.statusTag, item.status === 'CANCELLED' ? { color: '#ef4444' } : { color: STATUS_CONFIG[item.status]?.color || '#10b981' }]}>
-                   {item.status === 'DELIVERED' ? 'YAKUNLANDI 📦' : item.status === 'CANCELLED' ? 'BEKOR QILINGAN ❌' : `${STATUS_CONFIG[item.status]?.label.toUpperCase()} ${STATUS_CONFIG[item.status]?.emoji}`}
+                   {item.status === 'DELIVERED' ? 'YAKUNLANDI 📦' 
+                     : item.status === 'CANCELLED' ? 'BEKOR QILINGAN ❌' 
+                     : (item as any).facilityStage?.name ? `${(item as any).facilityStage?.name.toUpperCase()} 🌟`
+                     : `${STATUS_CONFIG[item.status]?.label?.toUpperCase()} ${STATUS_CONFIG[item.status]?.emoji}`}
                 </Text>
              </View>
              {item.customer && (
@@ -112,7 +115,9 @@ export default function HistoryScreen() {
                     </View>
                     <View style={styles.mRow}>
                        <Text style={styles.mLabel}>Holati:</Text>
-                       <Text style={[styles.mValue, { color: selectedOrder.status === 'CANCELLED' ? '#ef4444' : '#10b981' }]}>{selectedOrder.status}</Text>
+                       <Text style={[styles.mValue, { color: selectedOrder.status === 'CANCELLED' ? '#ef4444' : '#10b981' }]}>
+                          {(selectedOrder as any).facilityStage?.name || STATUS_CONFIG[selectedOrder.status]?.label || selectedOrder.status}
+                       </Text>
                     </View>
                     <View style={styles.mRow}>
                        <Text style={styles.mLabel}>Sana:</Text>
@@ -143,9 +148,7 @@ export default function HistoryScreen() {
                           <View key={idx} style={styles.itemBox}>
                              <View style={styles.itemHeader}>
                                 <Text style={styles.itemName}>{it.service?.name || 'Xizmat'}</Text>
-                                {user?.appRole !== 'FACILITY' && (
-                                  <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
-                                )}
+                                <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
                              </View>
                              <Text style={styles.itemMetric}>{it.quantity} {it.service?.measurementUnit || 'kv.m'} {(it.width && it.length) ? `| D: ${it.width}x${it.length}` : ''}</Text>
                           </View>
