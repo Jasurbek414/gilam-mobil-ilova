@@ -157,6 +157,22 @@ export async function logout() {
   await removeToken();
 }
 
+// ─── Expenses API ────────────────────────────────────────────────────────────
+
+export async function createExpense(data: {
+  companyId: string;
+  title: string;
+  amount: number;
+  category: string;
+  comment?: string;
+  date: string;
+}): Promise<any> {
+  return request<any>('/expenses', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // ─── Orders API ──────────────────────────────────────────────────────────────
 
 export async function getMyOrders(userId: string): Promise<Order[]> {

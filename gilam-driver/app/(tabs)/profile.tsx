@@ -1,16 +1,45 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { logout } from '../../lib/api';
+import { logout, createExpense } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, setUser } = useAuth();
   const router = useRouter();
   const [showLogout, setShowLogout] = useState(false);
+  const [showExpense, setShowExpense] = useState(false);
+  const [expenseData, setExpenseData] = useState({ title: '', amount: '', comment: '' });
+  const [savingExpense, setSavingExpense] = useState(false);
 
   const handleLogout = async () => { await logout(); setUser(null); };
+
+  const handleSaveExpense = async () => {
+    if (!expenseData.title || !expenseData.amount) {
+      Alert.alert('Xatolik', 'Xarajat nomi va summasini kiritish majburiy!');
+      return;
+    }
+    
+    setSavingExpense(true);
+    try {
+      await createExpense({
+        companyId: user!.companyId,
+        title: expenseData.title,
+        amount: Number(expenseData.amount),
+        category: 'Logistika', // Always logistics for drivers
+        comment: `Haydovchi mobil ilovasidan qo'shildi. ${expenseData.comment}`,
+        date: new Date().toISOString().split('T')[0]
+      });
+      setShowExpense(false);
+      setExpenseData({ title: '', amount: '', comment: '' });
+      Alert.alert('Bajarildi', 'Kiritilgan mablag xisobotga yozildi.');
+    } catch(err: any) {
+      Alert.alert('Xatolik', err.message || 'Saqlab bo\'lmadi');
+    } finally {
+      setSavingExpense(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -52,11 +81,82 @@ export default function ProfileScreen() {
            </View>
         </View>
 
+        <TouchableOpacity style={styles.expenseBtn} onPress={() => setShowExpense(true)} activeOpacity={0.8}>
+           <Ionicons name="card" size={20} color="#10b981" style={{marginRight: 8}} />
+           <Text style={styles.expenseText}>MOLIYAVIY XARAJAT KIRITISH</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={() => setShowLogout(true)} activeOpacity={0.8}>
            <Text style={styles.logoutText}>HISOBLAN CHIQISH</Text>
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* EXPENSE MODAL */}
+      <Modal visible={showExpense} transparent animationType="slide">
+        <View style={styles.expenseModalBg}>
+          <ScrollView contentContainerStyle={styles.expenseModalScroll}>
+            <View style={styles.expenseModalCard}>
+              
+              <View style={styles.expenseHeader}>
+                <View style={styles.expenseIconWrap}>
+                   <Ionicons name="wallet" size={28} color="#10b981" />
+                </View>
+                <Text style={styles.expenseTitle}>Yangi Xarajat</Text>
+                <Text style={styles.expenseSub}>Kiritilgan pullar avtomatik asosiy xisobotga yoziladi.</Text>
+              </View>
+
+              <View style={styles.inputBlock}>
+                 <Text style={styles.label}>Nima uchun sarflandi?</Text>
+                 <TextInput 
+                   style={styles.input} 
+                   placeholder="Masalan: Yoqilg'i uchun" 
+                   placeholderTextColor="#71717a"
+                   value={expenseData.title}
+                   onChangeText={(v) => setExpenseData({...expenseData, title: v})}
+                 />
+              </View>
+
+              <View style={styles.inputBlock}>
+                 <Text style={styles.label}>Summa (so'm)</Text>
+                 <TextInput 
+                   style={styles.input} 
+                   placeholder="250000" 
+                   placeholderTextColor="#71717a"
+                   keyboardType="numeric"
+                   value={expenseData.amount}
+                   onChangeText={(v) => setExpenseData({...expenseData, amount: v})}
+                 />
+              </View>
+
+              <View style={styles.inputBlock}>
+                 <Text style={styles.label}>Izoh (majburiy emas)</Text>
+                 <TextInput 
+                   style={[styles.input, {height: 80}]} 
+                   placeholder="Izoh qoldirish..." 
+                   placeholderTextColor="#71717a"
+                   multiline
+                   textAlignVertical="top"
+                   value={expenseData.comment}
+                   onChangeText={(v) => setExpenseData({...expenseData, comment: v})}
+                 />
+              </View>
+
+              <View style={styles.mCmds}>
+                <TouchableOpacity style={[styles.mBtnCancel, {flex: 1}]} onPress={() => setShowExpense(false)}>
+                  <Text style={styles.mBtnCancelText}>Bekor qilish</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.mBtnConfirm, {flex: 1}]} onPress={handleSaveExpense} disabled={savingExpense}>
+                  {savingExpense ? <ActivityIndicator color="#fff" /> : <Text style={styles.mBtnConfirmText}>Saqlash</Text>}
+                </TouchableOpacity>
+              </View>
+
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* LOGOUT MODAL */}
 
       <Modal visible={showLogout} transparent animationType="fade">
         <View style={styles.modalBg}>
@@ -91,7 +191,7 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: '#27272a' },
   iconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   infoLabel: { fontSize: 12, color: '#71717a', fontWeight: '600', marginBottom: 4 },
-  infoValue: { fontSize: 16, color: '#ffffff', fontWeight: '700' },
+  infoValue: { fontSize: 16, color: '#ffffff', fontWeight: '700', letterSpacing: 0.5 },
   logoutBtn: { backgroundColor: '#18181b', height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ef4444' },
   logoutText: { color: '#ef4444', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 },
