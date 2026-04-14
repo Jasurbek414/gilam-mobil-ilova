@@ -14,6 +14,8 @@ export default function OrdersScreen() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [deadlineOrder, setDeadlineOrder] = useState<{ id: string, nextStatus: string } | null>(null);
+  const [completeOrderModal, setCompleteOrderModal] = useState<Order | null>(null);
+  const [receivedAmount, setReceivedAmount] = useState<string>('');
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -57,14 +59,11 @@ export default function OrdersScreen() {
         ]
       );
     } else if (nextStatus === 'DELIVERED') {
-      Alert.alert(
-        'Tasdiqlash',
-        'Gilamlar mijozga to\'liq yetkazib berilganligini tasdiqlaysizmi?',
-        [
-          { text: 'Bekor qilish', style: 'cancel' },
-          { text: 'Tasdiqlayman', onPress: doUpdate, style: 'default' }
-        ]
-      );
+      const orderToComplete = orders.find(o => o.id === orderId);
+      if (orderToComplete) {
+         setReceivedAmount(String(orderToComplete.totalAmount || ''));
+         setCompleteOrderModal(orderToComplete);
+      }
     } else {
       doUpdate();
     }
@@ -193,6 +192,94 @@ export default function OrdersScreen() {
                  </TouchableOpacity>
               </View>
            </View>
+         )}
+      </Modal>
+
+      {/* Complete Order Modal (Kirim qabul qilish) */}
+      <Modal visible={!!completeOrderModal} transparent animationType="slide">
+         {completeOrderModal && (
+            <View style={styles.modalOverlay}>
+               <View style={[styles.modalContent, { height: 'auto', paddingBottom: 40 }]}>
+                  <Text style={styles.modalTitle}>Yetkazib Berish & To'lov</Text>
+                  <Text style={{color: '#a1a1aa', marginTop: 8, marginBottom: 24, lineHeight: 20}}>
+                     Gilamlar mijozga yetkazib berildimi? Shu joyning o'zida qabul qilib olgan pulingizni kiriting va u avtomatik tarzda "Kirim" xisobiga o'tadi.
+                  </Text>
+
+                  <View style={styles.mRow}>
+                     <Text style={styles.mLabel}>Hisoblangan haq:</Text>
+                     <Text style={[styles.mValue, {color: '#3b82f6', fontSize: 18, fontWeight: '900'}]}>
+                        {Number(completeOrderModal.totalAmount || 0).toLocaleString()} so'm
+                     </Text>
+                  </View>
+
+                  <View style={{marginTop: 16, marginBottom: 32}}>
+                     <Text style={{color: '#d4d4d8', fontSize: 13, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1}}>Qabul Qilingan Pul</Text>
+                     <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#27272a', borderRadius: 16, borderWidth: 1, borderColor: '#3f3f46', paddingHorizontal: 16}}>
+                        <Text style={{fontSize: 24, fontWeight: '800', color: '#10b981', marginRight: 8}}>+</Text>
+                        <TextInput 
+                           style={{flex: 1, color: '#fff', fontSize: 24, fontWeight: '800', paddingVertical: 16}}
+                           placeholder="0"
+                           placeholderTextColor="#52525b"
+                           keyboardType="numeric"
+                           value={receivedAmount}
+                           onChangeText={setReceivedAmount}
+                        />
+                        <Text style={{color: '#71717a', fontSize: 16, fontWeight: '700'}}>so'm</Text>
+                     </View>
+                  </View>
+                  
+                  <View style={{flexDirection: 'row', gap: 12}}>
+                     <TouchableOpacity 
+                       style={[styles.mainBtn, { backgroundColor: '#3f3f46', flex: 1, height: 56 }]} 
+                       onPress={() => setCompleteOrderModal(null)}
+                     >
+                       <Text style={[styles.mainBtnText, { color: '#fff' }]}>Bekor qilish</Text>
+                     </TouchableOpacity>
+
+                     <TouchableOpacity 
+                       style={[styles.mainBtn, { flex: 1.5, height: 56, backgroundColor: '#3b82f6' }]} 
+                       onPress={async () => {
+                          if (!receivedAmount) {
+                             Alert.alert('Xatolik', 'Olingan summani kiriting (agar olinmagan bo\'lsa 0 kiriting).');
+                             return;
+                          }
+                          setUpdatingId(completeOrderModal.id);
+                          const amnt = Number(receivedAmount);
+                          try {
+                             await updateOrderStatus(completeOrderModal.id, 'DELIVERED');
+                             
+                             if (amnt > 0) {
+                               // also import createExpense from api.ts
+                               const { createExpense } = require('../../lib/api');
+                               await createExpense({
+                                  companyId: user!.companyId,
+                                  userId: user!.id,
+                                  orderId: completeOrderModal.id,
+                                  title: 'Mijozdan to\'lov (Buyurtma)',
+                                  amount: amnt,
+                                  type: 'INCOME',
+                                  category: 'Logistika',
+                                  comment: `Kirim: Haydovchi mobil ilovasidan qo'shildi. Buyurtma ID: ${completeOrderModal.id}`,
+                                  date: new Date().toISOString().split('T')[0]
+                               });
+                             }
+
+                             setCompleteOrderModal(null);
+                             setSelectedOrder(null);
+                             await loadOrders();
+                             Alert.alert('Muvaffaqiyatli', amnt > 0 ? 'Buyurtma yetkazildi va To\'lov olinganligi tasdiqlandi!' : 'Buyurtma yetkazildi.');
+                          } catch (err: any) {
+                             Alert.alert('Xatolik', err.message);
+                          } finally {
+                             setUpdatingId(null);
+                          }
+                       }}
+                     >
+                       {updatingId === completeOrderModal.id ? <ActivityIndicator color="#fff" /> : <Text style={[styles.mainBtnText, {color: '#fff'}]}>Yetkazildi</Text>}
+                     </TouchableOpacity>
+                  </View>
+               </View>
+            </View>
          )}
       </Modal>
 

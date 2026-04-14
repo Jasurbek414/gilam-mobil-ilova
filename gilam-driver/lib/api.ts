@@ -162,6 +162,7 @@ export async function logout() {
 export async function createExpense(data: {
   companyId: string;
   userId?: string;
+  orderId?: string;
   title: string;
   amount: number;
   category: string;
