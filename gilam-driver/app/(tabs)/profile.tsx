@@ -10,6 +10,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [showLogout, setShowLogout] = useState(false);
   const [modalType, setModalType] = useState<null | 'INCOME' | 'EXPENSE'>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [expenseData, setExpenseData] = useState({ title: '', amount: '', comment: '' });
   const [savingExpense, setSavingExpense] = useState(false);
   const [myExpenses, setMyExpenses] = useState<any[]>([]);
@@ -42,18 +43,30 @@ export default function ProfileScreen() {
     
     setSavingExpense(true);
     try {
-      await createExpense({
-        companyId: user!.companyId,
-        userId: user!.id,
-        title: expenseData.title,
-        amount: Number(expenseData.amount),
-        type: modalType || 'EXPENSE',
-        category: 'Logistika', // Always logistics for drivers
-        comment: `${modalType === 'INCOME' ? 'Kirim' : 'Xarajat'}: Haydovchi mobil ilovasidan qo'shildi. ${expenseData.comment}`,
-        date: new Date().toISOString().split('T')[0]
-      });
-      setModalType(null);
-      setExpenseData({ title: '', amount: '', comment: '' });
+      const isIncome = modalType === 'INCOME';
+      const cleanComment = `${isIncome ? 'Kirim' : 'Xarajat'}: Haydovchi mobil ilovasidan qo'shildi. ${expenseData.comment}`;
+      
+      if (editingExpenseId) {
+        await updateExpense(editingExpenseId, {
+          title: expenseData.title,
+          amount: Number(expenseData.amount),
+          type: modalType || 'EXPENSE',
+          comment: cleanComment
+        });
+      } else {
+        await createExpense({
+          companyId: user!.companyId,
+          userId: user!.id,
+          title: expenseData.title,
+          amount: Number(expenseData.amount),
+          type: modalType || 'EXPENSE',
+          category: 'Logistika', 
+          comment: cleanComment,
+          date: new Date().toISOString().split('T')[0]
+        });
+      }
+      
+      closeModal();
       Alert.alert('Bajarildi', 'Muvaffaqiyatli saqlandi.');
       loadMyExpenses();
     } catch(err: any) {
@@ -61,6 +74,25 @@ export default function ProfileScreen() {
     } finally {
       setSavingExpense(false);
     }
+  };
+
+  const openNewModal = (type: 'INCOME'|'EXPENSE') => {
+     setEditingExpenseId(null);
+     setExpenseData({ title: '', amount: '', comment: '' });
+     setModalType(type);
+  };
+
+  const handleEditExpense = (exp: any) => {
+     setEditingExpenseId(exp.id);
+     setModalType(exp.type as any || 'EXPENSE');
+     const cmt = exp.comment? exp.comment.replace(/^(Kirim|Xarajat): Haydovchi mobil ilovasidan qo\'shildi\.\s*/, '') : '';
+     setExpenseData({ title: exp.title, amount: String(exp.amount), comment: cmt });
+  };
+
+  const closeModal = () => {
+     setModalType(null);
+     setEditingExpenseId(null);
+     setExpenseData({ title: '', amount: '', comment: '' });
   };
 
   const handleDeleteExpense = (id: string, title: string) => {
@@ -122,14 +154,14 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setModalType('INCOME')} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.actionBtnCard} onPress={() => openNewModal('INCOME')} activeOpacity={0.8}>
              <View style={[styles.actionIconBg, {backgroundColor: 'rgba(59, 130, 246, 0.15)'}]}>
                 <Ionicons name="arrow-down-circle" size={28} color="#3b82f6" />
              </View>
              <Text style={styles.actionCardText}>Kirim{'\n'}qilish</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setModalType('EXPENSE')} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.actionBtnCard} onPress={() => openNewModal('EXPENSE')} activeOpacity={0.8}>
              <View style={[styles.actionIconBg, {backgroundColor: 'rgba(239, 68, 68, 0.15)'}]}>
                 <Ionicons name="arrow-up-circle" size={28} color="#ef4444" />
              </View>
@@ -151,20 +183,20 @@ export default function ProfileScreen() {
           myExpenses.map((exp) => {
             const isIncome = exp.type === 'INCOME';
             return (
-              <View key={exp.id} style={styles.expCard}>
+              <TouchableOpacity key={exp.id} style={styles.expCard} onPress={() => handleEditExpense(exp)} activeOpacity={0.7}>
                  <View style={{flex: 1}}>
                     <Text style={[styles.expT, {color: isIncome ? '#60a5fa' : '#f87171'}]}>{exp.title}</Text>
                     <Text style={styles.expD}>{new Date(exp.createdAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</Text>
                  </View>
-                 <View style={{alignItems: 'flex-end', justifyContent: 'center'}}>
+                 <View style={{alignItems: 'flex-end', justifyContent: 'center', marginRight: 12}}>
                     <Text style={[styles.expSum, {color: isIncome ? '#3b82f6' : '#ef4444'}]}>
                       {isIncome ? '+ ' : '- '}{exp.amount.toLocaleString()} so'm
                     </Text>
                  </View>
                  <TouchableOpacity style={styles.expDelBtn} onPress={() => handleDeleteExpense(exp.id, exp.title)}>
-                    <Ionicons name="trash" size={20} color="#71717a" />
+                    <Ionicons name="trash" size={18} color="#71717a" />
                  </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             )
           })
         )}
@@ -179,7 +211,11 @@ export default function ProfileScreen() {
               
               <View style={styles.dragHandle} />
               
-              <Text style={styles.expenseTitle}>{modalType === 'INCOME' ? "Yangi Kirim" : "Yangi Xarajat"}</Text>
+              <Text style={styles.expenseTitle}>
+                {editingExpenseId 
+                   ? (modalType === 'INCOME' ? "Kirimni tahrirlash" : "Xarajatni tahrirlash")
+                   : (modalType === 'INCOME' ? "Yangi Kirim" : "Yangi Xarajat")}
+              </Text>
 
               <View style={styles.inputBlock}>
                  <Text style={styles.label}>
@@ -220,7 +256,7 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.mCmds}>
-                <TouchableOpacity style={styles.mBtnCancel} onPress={() => setModalType(null)}>
+                <TouchableOpacity style={styles.mBtnCancel} onPress={closeModal}>
                   <Text style={styles.mBtnCancelText}>Bekor qilish</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.fatGreenBtn, {backgroundColor: modalType === 'INCOME' ? '#3b82f6' : '#ef4444'}]} onPress={handleSaveExpense} disabled={savingExpense}>
@@ -300,13 +336,13 @@ const styles = StyleSheet.create({
   fatGreenBtn: { flex: 1, height: 56, backgroundColor: '#10b981', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   fatGreenText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
-  myExpHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, marginTop: 16 },
+  myExpHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, marginTop: 16 },
   myExpTitle: { color: '#ffffff', fontSize: 20, fontWeight: '800' },
   emptyExp: { backgroundColor: '#18181b', borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#27272a' },
-  emptyExpText: { color: '#71717a', fontSize: 14, fontWeight: '600', marginTop: 12 },
-  expCard: { backgroundColor: '#18181b', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#27272a' },
-  expT: { color: '#ffffff', fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  expD: { color: '#71717a', fontSize: 12, fontWeight: '600' },
-  expSum: { color: '#10b981', fontSize: 15, fontWeight: '800', paddingHorizontal: 16 },
-  expDelBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.1)', justifyContent: 'center', alignItems: 'center' }
+  emptyExpText: { color: '#71717a', fontSize: 13, fontWeight: '600', marginTop: 12 },
+  expCard: { backgroundColor: '#18181b', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, borderWidth: 1, borderColor: '#27272a' },
+  expT: { color: '#ffffff', fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  expD: { color: '#71717a', fontSize: 11, fontWeight: '600' },
+  expSum: { color: '#10b981', fontSize: 14, fontWeight: '800' },
+  expDelBtn: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center' }
 });

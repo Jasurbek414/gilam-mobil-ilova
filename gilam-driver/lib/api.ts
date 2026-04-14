@@ -185,6 +185,13 @@ export async function deleteExpense(expenseId: string): Promise<void> {
   });
 }
 
+export async function updateExpense(expenseId: string, data: any): Promise<any> {
+  return request<any>(`/expenses/${expenseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 // ─── Orders API ──────────────────────────────────────────────────────────────
 
 export async function getMyOrders(userId: string): Promise<Order[]> {
