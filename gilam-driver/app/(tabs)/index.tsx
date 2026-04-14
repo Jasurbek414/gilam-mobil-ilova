@@ -81,7 +81,7 @@ export default function OrdersScreen() {
       />
       <View style={{ backgroundColor: 'red', padding: 10 }}>
          <Text style={{ color: 'white', fontWeight: 'bold' }}>
-           DEBUG -> BackEndRole: {user?.role} | AppRole: {user?.appRole}
+           DEBUG -- BackEndRole: {user?.role} | AppRole: {user?.appRole}
          </Text>
       </View>
       <FlatList
@@ -243,9 +243,7 @@ export default function OrdersScreen() {
            activeOpacity={0.8}
            onPress={() => router.push('/chat')}
         >
-           <View style={styles.fabIconBg}>
-             <Ionicons name="chatbubbles" size={24} color="#09090b" />
-           </View>
+           <Ionicons name="chatbubbles" size={28} color="#09090b" />
         </TouchableOpacity>
       )}
     </View>
