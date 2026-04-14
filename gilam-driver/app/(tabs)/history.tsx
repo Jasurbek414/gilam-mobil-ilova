@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
 import { useAuth } from '../_layout';
 import { getCompanyOrders, Order } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
