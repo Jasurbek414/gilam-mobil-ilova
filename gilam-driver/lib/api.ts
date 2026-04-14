@@ -114,7 +114,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
-export async function login(phone: string, password: string): Promise<User> {
+export async function login(phone: string, password: string, companyName: string): Promise<User> {
   const data = await request<{ access_token: string; user: User }>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ phone, password }),
@@ -122,6 +122,11 @@ export async function login(phone: string, password: string): Promise<User> {
 
   if (data.user.role !== 'DRIVER') {
     throw new Error('Bu ilova faqat haydovchilar uchun');
+  }
+
+  // Kampaniya nomini tekshirish
+  if (!data.user.company || !data.user.company.name.toLowerCase().includes(companyName.toLowerCase().trim())) {
+    throw new Error(`Kiritilgan kampaniya nomi xato yoki bunday kampaniyada ishlamaysiz!`);
   }
 
   await setToken(data.access_token);

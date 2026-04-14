@@ -13,18 +13,19 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 export default function LoginScreen() {
   const router = useRouter();
   const { setUser } = useAuth();
+  const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!phone.trim() || !password.trim()) {
-      Alert.alert('Ogohlantirish', "Ma'lumotlarni to'liq kiriting");
+    if (!companyName.trim() || !phone.trim() || !password.trim()) {
+      Alert.alert('Ogohlantirish', "Ma'lumotlarni to'liq kiriting, shu jumladan kampaniya nomini ham");
       return;
     }
     setLoading(true);
     try {
-      const user = await login(phone.trim(), password.trim());
+      const user = await login(phone.trim(), password.trim(), companyName.trim());
       setUser(user);
       router.replace('/');
     } catch (err: any) {
@@ -53,6 +54,19 @@ export default function LoginScreen() {
 
           {/* Form */}
           <View style={styles.formBox}>
+             <View style={styles.inputContainer}>
+                <Ionicons name="business" size={20} color="#71717a" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={companyName}
+                  onChangeText={setCompanyName}
+                  placeholder="Kampaniya nomi (misol: Ideal Gilam)"
+                  placeholderTextColor="#52525b"
+                  autoCapitalize="words"
+                  cursorColor="#10b981"
+                />
+             </View>
+
              <View style={styles.inputContainer}>
                 <Ionicons name="call" size={20} color="#71717a" style={styles.inputIcon} />
                 <TextInput
