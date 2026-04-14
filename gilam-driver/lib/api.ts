@@ -76,6 +76,7 @@ export interface FacilityStage {
   name: string;
   icon: string;
   orderIndex: number;
+  statusFilter?: string | null;
 }
 
 export interface Order {

@@ -80,15 +80,17 @@ export default function OrdersScreen() {
 
   const handleAutoNextStage = async (orderId: string, currentStatus: string, currentFacilityStageId?: string | null) => {
       const STAGES = [
-         { id: 'AT_FACILITY', isDynamic: false },
-         { id: 'WASHING', isDynamic: false },
-         { id: 'DRYING', isDynamic: false },
-         { id: 'FINISHED', isDynamic: false },
-         ...facilityStages.map(s => ({ id: s.id, isDynamic: true })),
-         { id: 'READY_FOR_DELIVERY', isDynamic: false }
+         ...facilityStages.map(s => ({ id: s.id, statusFilter: s.statusFilter })),
+         { id: 'READY_FOR_DELIVERY', statusFilter: 'READY_FOR_DELIVERY' }
       ];
 
-      let currentIndex = currentFacilityStageId ? STAGES.findIndex(s => s.id === currentFacilityStageId) : STAGES.findIndex(s => s.id === currentStatus);
+      let currentIndex = -1;
+      if (currentFacilityStageId) {
+         currentIndex = STAGES.findIndex(s => s.id === currentFacilityStageId);
+      }
+      if (currentIndex === -1) {
+         currentIndex = STAGES.findIndex(s => s.statusFilter === currentStatus);
+      }
       if (currentIndex === -1) currentIndex = 0;
       
       const nextStage = STAGES[currentIndex + 1];
@@ -96,10 +98,10 @@ export default function OrdersScreen() {
 
       try {
          setUpdatingId(orderId);
-         if (nextStage.isDynamic) {
-             await updateOrderStatus(orderId, currentStatus, undefined, undefined, nextStage.id);
+         if (nextStage.statusFilter) {
+             await updateOrderStatus(orderId, nextStage.statusFilter, undefined, undefined, nextStage.id);
          } else {
-             await updateOrderStatus(orderId, nextStage.id, undefined, undefined, ""); 
+             await updateOrderStatus(orderId, currentStatus, undefined, undefined, nextStage.id);
          }
          await loadOrders();
       } catch (e: any) { Alert.alert("Xato", e.message); } 
@@ -110,15 +112,10 @@ export default function OrdersScreen() {
     return <View style={styles.center}><ActivityIndicator size="large" color="#10b981" /></View>;
   }
 
-  const DYNAMIC_FILTERS = facilityStages.map(s => ({ key: s.id, label: s.name, icon: s.icon }));
-
+  // Facility uchun: barcha bo'limlar bazadan keladi
   const FACILITY_FILTERS: any[] = [
-     { key: 'ALL', label: 'Barchasi', icon: 'list' },
-     { key: 'AT_FACILITY', label: 'Sexga tushgan', icon: 'business' },
-     { key: 'WASHING', label: 'Yuvilmoqda', icon: 'water' },
-     { key: 'DRYING', label: 'Quritilmoqda', icon: 'sunny' },
-     { key: 'FINISHED', label: 'Pardozda', icon: 'sparkles' },
-     ...DYNAMIC_FILTERS
+     { key: 'ALL', label: 'Barchasi', icon: 'list', isSystem: true },
+     ...facilityStages.map(s => ({ key: s.id, label: s.name, icon: s.icon, statusFilter: s.statusFilter }))
   ];
 
   const DRIVER_FILTERS = [
@@ -132,11 +129,14 @@ export default function OrdersScreen() {
   const currentFilters: any[] = user?.appRole === 'FACILITY' ? FACILITY_FILTERS : DRIVER_FILTERS;
   const filteredOrders = filterStatus === 'ALL' 
      ? orders 
-     : orders.filter(o => 
-         facilityStages.find(s => s.id === filterStatus) 
-           ? o.facilityStageId === filterStatus 
-           : o.status === filterStatus
-       );
+     : (() => {
+         const activeFilter = FACILITY_FILTERS.find(f => f.key === filterStatus);
+         if (activeFilter?.statusFilter) {
+            return orders.filter(o => o.status === activeFilter.statusFilter);
+         }
+         // Custom bo'lim (statusFilter yo'q) — facilityStageId bo'yicha filter
+         return orders.filter(o => o.facilityStageId === filterStatus);
+       })();
 
   return (
     <View style={styles.container}>
@@ -151,12 +151,13 @@ export default function OrdersScreen() {
                      activeOpacity={0.7}
                      onPress={() => setFilterStatus(f.key)}
                      onLongPress={() => {
-                        if (user?.appRole !== 'FACILITY' || f.key === 'ALL' || ['AT_FACILITY', 'WASHING', 'DRYING', 'FINISHED'].includes(f.key)) return;
+                        if (user?.appRole !== 'FACILITY' || f.key === 'ALL') return;
                         Alert.alert("Bo'limni o'chirish", `"${f.label}" bo'limini o'chirmoqchimisiz?`, [
                            {text: 'Bekor qilish', style: 'cancel'},
                            {text: "O'chirish", style: 'destructive', onPress: async () => {
                                try {
                                   await deleteFacilityStage(f.key);
+                                  if (filterStatus === f.key) setFilterStatus('ALL');
                                   loadOrders();
                                } catch(e:any) { Alert.alert('Xato', e.message) }
                            }}
