@@ -182,6 +182,10 @@ export async function getDriverCompletedOrders(driverId: string): Promise<Order[
   return request<Order[]>(`/orders/driver/${driverId}/history`);
 }
 
+export async function getFacilityCompletedOrders(companyId: string): Promise<Order[]> {
+  return request<Order[]>(`/orders/facility/${companyId}/history`);
+}
+
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 
 export const STATUS_CONFIG: Record<string, {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
 import { useAuth } from '../_layout';
-import { getDriverCompletedOrders, Order } from '../../lib/api';
+import { getDriverCompletedOrders, getFacilityCompletedOrders, Order } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HistoryScreen() {
@@ -14,8 +14,14 @@ export default function HistoryScreen() {
   const loadHistory = useCallback(async () => {
     if (!user) return;
     try {
-      if (!user.id) return;
-      const data = await getDriverCompletedOrders(user.id);
+      let data: Order[] = [];
+      if (user.appRole === 'FACILITY') {
+        if (!user.companyId) return;
+        data = await getFacilityCompletedOrders(user.companyId);
+      } else {
+        if (!user.id) return;
+        data = await getDriverCompletedOrders(user.id);
+      }
       setOrders(data || []);
     } catch (err) { }
     finally { setLoading(false); setRefreshing(false); }
