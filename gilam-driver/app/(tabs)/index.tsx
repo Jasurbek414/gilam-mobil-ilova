@@ -26,10 +26,34 @@ export default function OrdersScreen() {
   const onRefresh = () => { setRefreshing(true); loadOrders(); };
 
   const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
-    setUpdatingId(orderId);
-    try { await updateOrderStatus(orderId, nextStatus); await loadOrders(); }
-    catch (err: any) { Alert.alert('Xatolik', err.message || 'Status yangilanmadi'); }
-    finally { setUpdatingId(null); }
+    const doUpdate = async () => {
+      setUpdatingId(orderId);
+      try { await updateOrderStatus(orderId, nextStatus); await loadOrders(); }
+      catch (err: any) { Alert.alert('Xatolik', err.message || 'Status yangilanmadi'); }
+      finally { setUpdatingId(null); }
+    };
+
+    if (nextStatus === 'AT_FACILITY') {
+      Alert.alert(
+        'Tasdiqlash',
+        'Barcha gilamlarni korxonaga (sexga) tushirib topshirganingizni tasdiqlaysizmi?',
+        [
+          { text: 'Bekor qilish', style: 'cancel' },
+          { text: 'Tasdiqlayman', onPress: doUpdate, style: 'default' }
+        ]
+      );
+    } else if (nextStatus === 'DELIVERED') {
+      Alert.alert(
+        'Tasdiqlash',
+        'Gilamlar mijozga to\'liq yetkazib berilganligini tasdiqlaysizmi?',
+        [
+          { text: 'Bekor qilish', style: 'cancel' },
+          { text: 'Tasdiqlayman', onPress: doUpdate, style: 'default' }
+        ]
+      );
+    } else {
+      doUpdate();
+    }
   };
 
   if (loading) {
