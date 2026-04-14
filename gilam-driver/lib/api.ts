@@ -165,6 +165,7 @@ export async function createExpense(data: {
   title: string;
   amount: number;
   category: string;
+  type?: 'INCOME' | 'EXPENSE';
   comment?: string;
   date: string;
 }): Promise<any> {

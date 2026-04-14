@@ -9,7 +9,7 @@ export default function ProfileScreen() {
   const { user, setUser } = useAuth();
   const router = useRouter();
   const [showLogout, setShowLogout] = useState(false);
-  const [showExpense, setShowExpense] = useState(false);
+  const [modalType, setModalType] = useState<null | 'INCOME' | 'EXPENSE'>(null);
   const [expenseData, setExpenseData] = useState({ title: '', amount: '', comment: '' });
   const [savingExpense, setSavingExpense] = useState(false);
   const [myExpenses, setMyExpenses] = useState<any[]>([]);
@@ -47,11 +47,12 @@ export default function ProfileScreen() {
         userId: user!.id,
         title: expenseData.title,
         amount: Number(expenseData.amount),
+        type: modalType || 'EXPENSE',
         category: 'Logistika', // Always logistics for drivers
         comment: `Haydovchi mobil ilovasidan qo'shildi. ${expenseData.comment}`,
         date: new Date().toISOString().split('T')[0]
       });
-      setShowExpense(false);
+      setModalType(null);
       setExpenseData({ title: '', amount: '', comment: '' });
       Alert.alert('Bajarildi', 'Kiritilgan mablag xisobotga yozildi.');
       loadMyExpenses();
@@ -84,6 +85,9 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => setShowLogout(true)} style={styles.logoutTopBtn}>
+             <Ionicons name="log-out" size={24} color="#ef4444" />
+          </TouchableOpacity>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{user.fullName?.[0]?.toUpperCase() || 'U'}</Text>
           </View>
@@ -118,59 +122,64 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setShowExpense(true)} activeOpacity={0.8}>
-             <View style={[styles.actionIconBg, {backgroundColor: 'rgba(16, 185, 129, 0.15)'}]}>
-                <Ionicons name="wallet-outline" size={24} color="#10b981" />
+          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setModalType('INCOME')} activeOpacity={0.8}>
+             <View style={[styles.actionIconBg, {backgroundColor: 'rgba(59, 130, 246, 0.15)'}]}>
+                <Ionicons name="arrow-down-circle" size={28} color="#3b82f6" />
              </View>
-             <Text style={styles.actionCardText}>Xarajat{'\n'}qo'shish</Text>
+             <Text style={styles.actionCardText}>Kirim{'\n'}qilish</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setShowLogout(true)} activeOpacity={0.8}>
-             <View style={[styles.actionIconBg, {backgroundColor: 'rgba(239, 68, 68, 0.1)'}]}>
-                <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setModalType('EXPENSE')} activeOpacity={0.8}>
+             <View style={[styles.actionIconBg, {backgroundColor: 'rgba(239, 68, 68, 0.15)'}]}>
+                <Ionicons name="arrow-up-circle" size={28} color="#ef4444" />
              </View>
-             <Text style={styles.actionCardText}>Hisobdan{'\n'}chiqish</Text>
+             <Text style={styles.actionCardText}>Xarajat{'\n'}qo'shish</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.myExpHeader}>
-          <Text style={styles.myExpTitle}>Mening xarajatlarim</Text>
+          <Text style={styles.myExpTitle}>Mening o'tkazmalarim</Text>
           {loadingExp && <ActivityIndicator size="small" color="#10b981" />}
         </View>
 
         {myExpenses.length === 0 && !loadingExp ? (
           <View style={styles.emptyExp}>
             <Ionicons name="receipt-outline" size={32} color="#27272a" />
-            <Text style={styles.emptyExpText}>Hali xarajat kiritmagansiz</Text>
+            <Text style={styles.emptyExpText}>Hali hech narsa kiritmagansiz</Text>
           </View>
         ) : (
-          myExpenses.map((exp) => (
-            <View key={exp.id} style={styles.expCard}>
-               <View style={{flex: 1}}>
-                  <Text style={styles.expT}>{exp.title}</Text>
-                  <Text style={styles.expD}>{new Date(exp.createdAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</Text>
-               </View>
-               <View style={{alignItems: 'flex-end', justifyContent: 'center'}}>
-                  <Text style={styles.expSum}>{exp.amount.toLocaleString()} so'm</Text>
-               </View>
-               <TouchableOpacity style={styles.expDelBtn} onPress={() => handleDeleteExpense(exp.id, exp.title)}>
-                  <Ionicons name="trash" size={20} color="#ef4444" />
-               </TouchableOpacity>
-            </View>
-          ))
+          myExpenses.map((exp) => {
+            const isIncome = exp.type === 'INCOME';
+            return (
+              <View key={exp.id} style={styles.expCard}>
+                 <View style={{flex: 1}}>
+                    <Text style={[styles.expT, {color: isIncome ? '#60a5fa' : '#f87171'}]}>{exp.title}</Text>
+                    <Text style={styles.expD}>{new Date(exp.createdAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</Text>
+                 </View>
+                 <View style={{alignItems: 'flex-end', justifyContent: 'center'}}>
+                    <Text style={[styles.expSum, {color: isIncome ? '#3b82f6' : '#ef4444'}]}>
+                      {isIncome ? '+ ' : '- '}{exp.amount.toLocaleString()} so'm
+                    </Text>
+                 </View>
+                 <TouchableOpacity style={styles.expDelBtn} onPress={() => handleDeleteExpense(exp.id, exp.title)}>
+                    <Ionicons name="trash" size={20} color="#71717a" />
+                 </TouchableOpacity>
+              </View>
+            )
+          })
         )}
 
       </ScrollView>
 
       {/* EXPENSE MODAL */}
-      <Modal visible={showExpense} transparent animationType="slide">
+      <Modal visible={modalType !== null} transparent animationType="slide">
         <View style={styles.expenseModalBg}>
           <ScrollView contentContainerStyle={styles.expenseModalScroll}>
             <View style={styles.expenseModalCard}>
               
               <View style={styles.dragHandle} />
               
-              <Text style={styles.expenseTitle}>Yangi Xarajat</Text>
+              <Text style={styles.expenseTitle}>{modalType === 'INCOME' ? "Yangi Kirim" : "Yangi Xarajat"}</Text>
 
               <View style={styles.inputBlock}>
                  <Text style={styles.label}>Nima uchun sarflandi?</Text>
@@ -209,11 +218,11 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.mCmds}>
-                <TouchableOpacity style={styles.mBtnCancel} onPress={() => setShowExpense(false)}>
+                <TouchableOpacity style={styles.mBtnCancel} onPress={() => setModalType(null)}>
                   <Text style={styles.mBtnCancelText}>Bekor qilish</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.fatGreenBtn} onPress={handleSaveExpense} disabled={savingExpense}>
-                  {savingExpense ? <ActivityIndicator color="#fff" /> : <Text style={styles.fatGreenText}>Tasdiqlash</Text>}
+                <TouchableOpacity style={[styles.fatGreenBtn, {backgroundColor: modalType === 'INCOME' ? '#3b82f6' : '#ef4444'}]} onPress={handleSaveExpense} disabled={savingExpense}>
+                  {savingExpense ? <ActivityIndicator color="#fff" /> : <Text style={styles.fatGreenText}>Saqlash</Text>}
                 </TouchableOpacity>
               </View>
 
@@ -248,8 +257,9 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#09090b', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 120 },
-  header: { alignItems: 'center', marginBottom: 40 },
-  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#10b981', marginBottom: 16 },
+  header: { alignItems: 'center', marginBottom: 32, position: 'relative' },
+  logoutTopBtn: { position: 'absolute', top: 0, right: 0, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(239, 68, 68, 0.1)', justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: 'rgba(16, 185, 129, 0.3)' },
   avatarText: { fontSize: 40, color: '#10b981', fontWeight: '900' },
   name: { fontSize: 24, fontWeight: '800', color: '#ffffff' },
   roleLabel: { fontSize: 13, color: '#a1a1aa', fontWeight: '600', marginTop: 4, letterSpacing: 1 },
