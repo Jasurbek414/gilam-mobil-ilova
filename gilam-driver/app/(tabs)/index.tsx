@@ -297,49 +297,50 @@ export default function OrdersScreen() {
 
                  <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                     
-                    <View style={styles.mRow}>
-                       <Text style={styles.mLabel}>Buyurtma ID:</Text>
-                       <Text style={styles.mValue}>#{selectedOrder.id.substring(0, 8)}</Text>
-                    </View>
-                    
-                    <View style={styles.mRow}>
-                       <Text style={styles.mLabel}>Yaratilgan vaqt:</Text>
-                       <Text style={styles.mValue}>{new Date(selectedOrder.createdAt).toLocaleString('uz-UZ')}</Text>
-                    </View>
+                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                        <View>
+                           <Text style={{ color: '#71717a', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>Buyurtma</Text>
+                           <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>#{selectedOrder.id.substring(0, 8)}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                           <Text style={{ color: '#71717a', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>Sana</Text>
+                           <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{new Date(selectedOrder.createdAt).toLocaleDateString('uz-UZ')}</Text>
+                        </View>
+                     </View>
 
-                    <View style={styles.mRow}>
-                       <Text style={styles.mLabel}>Buyurtmachi:</Text>
-                       <Text style={styles.mValue}>{selectedOrder.customer?.fullName}</Text>
-                    </View>
+                     <View style={{ backgroundColor: 'rgba(39, 39, 42, 0.4)', borderRadius: 20, padding: 20, marginBottom: 24 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <View style={{ flex: 1, paddingRight: 10 }}>
+                              <Text style={{ color: '#71717a', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Mijoz</Text>
+                              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>{selectedOrder.customer?.fullName}</Text>
+                              <Text style={{ color: '#a1a1aa', fontSize: 14, marginTop: 4, fontWeight: '500' }}>{selectedOrder.customer?.phone1}</Text>
+                           </View>
 
-                    {user?.appRole !== 'FACILITY' && (
-                      <>
-                        <View style={styles.mRow}>
-                           <Text style={styles.mLabel}>Telefon:</Text>
-                           <Text style={styles.mValue}>{selectedOrder.customer?.phone1}</Text>
+                           {user?.appRole !== 'FACILITY' && selectedOrder.customer && (
+                              <View style={{ flexDirection: 'row', gap: 12 }}>
+                                 <TouchableOpacity 
+                                    style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center' }}
+                                    onPress={() => Linking.openURL(`tel:${selectedOrder.customer!.phone1}`)}
+                                 >
+                                    <Ionicons name="call" size={20} color="#10b981" />
+                                 </TouchableOpacity>
+                                 <TouchableOpacity 
+                                    style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(56, 189, 248, 0.1)', justifyContent: 'center', alignItems: 'center' }}
+                                    onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${selectedOrder.customer!.address!}`)}
+                                 >
+                                    <Ionicons name="navigate" size={20} color="#38bdf8" />
+                                 </TouchableOpacity>
+                              </View>
+                           )}
                         </View>
 
-                        {selectedOrder.customer && (
-                          <View style={styles.modalActionGrid}>
-                             <TouchableOpacity style={styles.mBtnCall} onPress={() => Linking.openURL(`tel:${selectedOrder.customer!.phone1}`)}>
-                                <Ionicons name="call" size={20} color="#fff" />
-                                <Text style={styles.mBtnText}>Qo'ng'iroq</Text>
-                             </TouchableOpacity>
-                             <TouchableOpacity style={styles.mBtnMap} onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${selectedOrder.customer!.address!}`)}>
-                                <Ionicons name="navigate" size={20} color="#fff" />
-                                <Text style={styles.mBtnText}>Xarita</Text>
-                             </TouchableOpacity>
-                          </View>
-                        )}
-                      </>
-                    )}
-
-                     {selectedOrder.notes ? (
-                        <View style={styles.mNotesBox}>
-                           <Text style={styles.mLabel}>Izohlar:</Text>
-                           <Text style={styles.mNotesText}>{selectedOrder.notes}</Text>
-                        </View>
-                     ) : null}
+                        {selectedOrder.notes ? (
+                           <View style={{ marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.05)' }}>
+                              <Text style={{ color: '#71717a', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Izohlar</Text>
+                              <Text style={{ color: '#facc15', fontSize: 14, fontStyle: 'italic', fontWeight: '500', lineHeight: 20 }}>"{selectedOrder.notes}"</Text>
+                           </View>
+                        ) : null}
+                     </View>
 
                      <Text style={[styles.sectionTitle, { marginTop: 8, marginBottom: 8 }]}>Narsalar ro'yxati</Text>
                      {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
@@ -358,9 +359,9 @@ export default function OrdersScreen() {
                                     </Text>
                                  </View>
                                  {user?.appRole !== 'FACILITY' ? (
-                                   <View style={{ width: 105 }}>
+                                   <View style={{ width: 85 }}>
                                       <TextInput 
-                                          style={{ backgroundColor: '#09090b', borderRadius: 8, color: '#10b981', fontSize: 14, fontWeight: '800', textAlign: 'right', paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: '#3f3f46' }}
+                                          style={{ color: '#10b981', fontSize: 16, fontWeight: '900', textAlign: 'right', minWidth: 60, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#3f3f46' }}
                                           placeholder="0"
                                           placeholderTextColor="#52525b"
                                           keyboardType="numeric"
@@ -371,7 +372,6 @@ export default function OrdersScreen() {
                                                 try { 
                                                    const { updateItemPrice } = require('../../lib/api');
                                                    await updateItemPrice(it.id, num); 
-                                                   Alert.alert("Saqlandi", "Narx tizimga yozildi.");
                                                    loadOrders();
                                                 } catch (err: any) { Alert.alert('Xato', err.message || 'Narx saqlanmadi'); }
                                              }
