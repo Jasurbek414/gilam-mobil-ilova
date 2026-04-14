@@ -83,17 +83,15 @@ export default function ChatScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{
-        title: 'Qo\'llab-quvvatlash markazi',
-        headerStyle: { backgroundColor: '#111827' },
-        headerTintColor: '#ffffff',
-        headerTitleStyle: { fontSize: 18, fontWeight: '600' },
-        headerLeft: () => (
-          <TouchableOpacity onPress={() => router.back()} style={{marginRight: 16}}>
-             <Ionicons name="arrow-back" size={24} color="#ffffff" />
-          </TouchableOpacity>
-        )
-      }} />
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Ruxsat etilgan Maxsus Header (Status bar tekshiruvi ostida) */}
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+           <Ionicons name="arrow-back" size={24} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Qo'llab-quvvatlash</Text>
+      </View>
 
       {loading ? (
          <View style={styles.center}><ActivityIndicator color="#10b981" size="large"/></View>
@@ -101,7 +99,6 @@ export default function ChatScreen() {
         <KeyboardAvoidingView 
            style={styles.container} 
            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
           <FlatList
             ref={listRef}
@@ -121,13 +118,12 @@ export default function ChatScreen() {
             }
             renderItem={({ item }) => {
               const isMe = item.senderId === user?.id;
-              
-              // Helper to split full name:
               const fName = (item.sender?.fullName || operatorName).split('-')[0].trim();
 
               return (
                 <View style={[styles.msgRow, isMe ? styles.msgRight : styles.msgLeft]}>
-                  <View style={{flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start'}}>
+                  {/* Wrap to 85% max width here to prevent internal Yoga buggy wrapping */}
+                  <View style={{ maxWidth: '85%', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
                     {!isMe && (
                       <Text style={styles.senderNameLabel}>
                         {fName}
@@ -169,6 +165,9 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f172a' },
+  header: { backgroundColor: '#111827', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
+  backBtn: { marginRight: 16 },
+  headerTitle: { color: '#ffffff', fontSize: 18, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10, flexGrow: 1, justifyContent: 'flex-end' },
   centerEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 60 },
@@ -179,7 +178,7 @@ const styles = StyleSheet.create({
   msgRight: { justifyContent: 'flex-end' },
   msgLeft: { justifyContent: 'flex-start' },
   senderNameLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4, marginLeft: 2, fontWeight: '500' },
-  bubble: { maxWidth: '85%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, shadowColor: '#000', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, elevation: 1 },
+  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, shadowColor: '#000', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, elevation: 1 },
   bubbleMe: { backgroundColor: '#059669', borderBottomRightRadius: 4 },
   bubbleThem: { backgroundColor: '#1e293b', borderBottomLeftRadius: 4 },
   msgText: { fontSize: 15, lineHeight: 22 },
