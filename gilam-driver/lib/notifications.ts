@@ -1,23 +1,34 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { request } from './api';
 
-// Set up the foreground notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  } as any),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+let Notifications: any = null;
+
+if (!isExpoGo) {
+  try {
+     Notifications = require('expo-notifications');
+     Notifications.setNotificationHandler({
+       handleNotification: async () => ({
+         shouldShowAlert: true,
+         shouldPlaySound: true,
+         shouldSetBadge: true,
+       } as any),
+     });
+  } catch (e) {}
+}
 
 /**
  * Registers the device for push notifications and returns the Expo push token
  */
 export async function registerForPushNotificationsAsync() {
   let token;
+
+  if (isExpoGo || !Notifications) {
+      console.log('[Push] Expo Go muhiti aniqlandi yoki modul topilmadi. Push token olinmaydi.');
+      return null;
+  }
 
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync('default', {
@@ -40,13 +51,6 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
     try {
-      // Expo Go da (Android SDK 53+) Push Token ishlamaydi va qizil xato beradi!
-      // Faqat haqiqiy APK build bo'lganda bu koddan tokenni olamiz.
-      if (Constants.appOwnership === 'expo') {
-          console.log('[Push] Expo Go muhiti aniqlandi. Push token olinmaydi.');
-          return null;
-      }
-
       const projectId =
         Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId ?? 'gilam-driver-test';
         
