@@ -113,9 +113,18 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 
 export async function getCompanies(): Promise<{id: string, name: string}[]> {
-  return request<{id: string, name: string}[]>('/public/companies', {
-    method: 'GET'
-  });
+  try {
+    const res = await fetch(`${API_BASE}/public/companies`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    if (!res.ok) throw new Error('Status not ok');
+    return await res.json();
+  } catch (err) {
+    throw new Error('Kompaniyalarni yuklashda xato!');
+  }
 }
 
 // ─── Auth API ────────────────────────────────────────────────────────────────

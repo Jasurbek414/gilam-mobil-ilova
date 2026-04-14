@@ -148,7 +148,9 @@ export default function LoginScreen() {
                </View>
 
                <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                  {companies.length === 0 ? (
+                  {loadingCompanies ? (
+                    <ActivityIndicator size="large" color="#10b981" style={{marginTop: 40}} />
+                  ) : companies.length === 0 ? (
                     <Text style={{color: '#a1a1aa', textAlign: 'center', marginTop: 40}}>Kampaniyalar topilmadi.</Text>
                   ) : null}
                   {companies.map(c => (
