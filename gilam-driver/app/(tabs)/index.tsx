@@ -341,26 +341,51 @@ export default function OrdersScreen() {
                         </View>
                      ) : null}
 
-                     <Text style={styles.sectionTitle}>Narsalar ro'yxati</Text>
+                     <Text style={[styles.sectionTitle, { marginTop: 8, marginBottom: 8 }]}>Narsalar ro'yxati</Text>
                      {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
                          <Text style={styles.emptyItems}>Ichida narsalar hali biriktirilmagan.</Text>
                      ) : (
-                        selectedOrder.items.map((it, idx) => (
-                           <View key={it.id || idx} style={styles.itemBox}>
-                              <View style={styles.itemHeader}>
-                                 <Text style={styles.itemName}>{it.service?.name || 'Noma\'lum xizmat'}</Text>
-                                 {user?.appRole !== 'FACILITY' && (
-                                   <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                        <View style={{ backgroundColor: '#18181b', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#27272a', marginBottom: 16 }}>
+                           {selectedOrder.items.map((it, idx) => (
+                              <View key={it.id || idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: idx === selectedOrder.items!.length - 1 ? 0 : 1, borderBottomColor: '#27272a' }}>
+                                 <View style={{ flex: 1, paddingRight: 12 }}>
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 4 }} numberOfLines={1}>
+                                       {it.service?.name || 'Xizmat turi mavjud emas'}
+                                    </Text>
+                                    <Text style={{ color: '#a1a1aa', fontSize: 12, fontWeight: '600' }}>
+                                       {it.quantity} {it.service?.measurementUnit || 'kv.m'}
+                                       {(it.width && it.length) ? `  •  ${it.width} x ${it.length}` : ''}
+                                    </Text>
+                                 </View>
+                                 {user?.appRole !== 'FACILITY' ? (
+                                   <View style={{ width: 105 }}>
+                                      <TextInput 
+                                          style={{ backgroundColor: '#09090b', borderRadius: 8, color: '#10b981', fontSize: 14, fontWeight: '800', textAlign: 'right', paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: '#3f3f46' }}
+                                          placeholder="0"
+                                          placeholderTextColor="#52525b"
+                                          keyboardType="numeric"
+                                          defaultValue={it.totalPrice && Number(it.totalPrice) > 0 ? String(it.totalPrice) : ''}
+                                          onEndEditing={async (e) => {
+                                             const num = Number(e.nativeEvent.text);
+                                             if (num >= 0 && it.id) {
+                                                try { 
+                                                   const { updateItemPrice } = require('../../lib/api');
+                                                   await updateItemPrice(it.id, num); 
+                                                   Alert.alert("Saqlandi", "Narx tizimga yozildi.");
+                                                   loadOrders();
+                                                } catch (err: any) { Alert.alert('Xato', err.message || 'Narx saqlanmadi'); }
+                                             }
+                                          }}
+                                      />
+                                   </View>
+                                 ) : (
+                                    <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '800' }}>
+                                       {Number(it.totalPrice || 0).toLocaleString()} so'm
+                                    </Text>
                                  )}
                               </View>
-                              <View style={styles.itemDetails}>
-                                 <Text style={styles.itemMetric}>{it.quantity} {it.service?.measurementUnit || 'kv.m'}</Text>
-                                 {(it.width && it.length) ? (
-                                    <Text style={styles.itemDim}>{it.width} x {it.length} = {(it.width * it.length).toFixed(2)} m²</Text>
-                                 ) : null}
-                              </View>
-                           </View>
-                        ))
+                           ))}
+                        </View>
                      )}
 
                      <View style={{ height: 24 }} />

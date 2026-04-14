@@ -218,6 +218,13 @@ export async function updateOrderStatus(orderId: string, status: string, notes?:
   });
 }
 
+export async function updateItemPrice(itemId: string, price: number): Promise<any> {
+  return request<any>(`/orders/items/${itemId}/price`, {
+    method: 'PATCH',
+    body: JSON.stringify({ price }),
+  });
+}
+
 export async function getDriverCompletedOrders(driverId: string): Promise<Order[]> {
   return request<Order[]>(`/orders/driver/${driverId}/history`);
 }
