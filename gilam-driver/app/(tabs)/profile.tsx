@@ -23,7 +23,7 @@ export default function ProfileScreen() {
             <Text style={styles.avatarText}>{user.fullName?.[0]?.toUpperCase() || 'U'}</Text>
           </View>
           <Text style={styles.name}>{user.fullName}</Text>
-          <Text style={styles.roleLabel}>Gilam Haydovchisi</Text>
+          <Text style={styles.roleLabel}>{user.appRole === 'FACILITY' ? 'Sex xodimi' : 'Gilam Haydovchisi'}</Text>
         </View>
 
         <View style={styles.metricBlock}>
