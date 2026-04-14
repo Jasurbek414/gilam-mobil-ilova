@@ -98,6 +98,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (res.status === 401) {
+    if (path === '/auth/login') {
+      throw new Error("Telefon raqam yoki parol noto'g'ri!");
+    }
     await removeToken();
     throw new Error('SESSION_EXPIRED');
   }
