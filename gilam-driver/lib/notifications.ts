@@ -56,7 +56,7 @@ export async function registerForPushNotificationsAsync() {
         
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     } catch (e) {
-      console.log('[Push] Push token error info:', e.message);
+      console.log('[Push] Push token error info:', (e as Error).message);
     }
   } else {
     console.warn('Push xabarnomalar faqat haqiqiy qurilmalarda ishlaydi');

@@ -70,20 +70,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <Tabs.Screen 
-        options={{
-          headerRight: () => (
-            <TouchableOpacity onPress={() => router.push('/chat')} style={{ marginRight: 20 }}>
-               <Ionicons name="chatbubbles" size={26} color="#10b981" />
-            </TouchableOpacity>
-          )
-        }} 
-      />
-      <View style={{ backgroundColor: 'red', padding: 10 }}>
-         <Text style={{ color: 'white', fontWeight: 'bold' }}>
-           DEBUG -- BackEndRole: {user?.role} | AppRole: {user?.appRole}
-         </Text>
-      </View>
+
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
