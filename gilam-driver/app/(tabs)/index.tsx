@@ -13,6 +13,7 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [deadlineOrder, setDeadlineOrder] = useState<{ id: string, nextStatus: string } | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -34,6 +35,11 @@ export default function OrdersScreen() {
   const onRefresh = () => { setRefreshing(true); loadOrders(); };
 
   const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
+    if (nextStatus === 'PICKED_UP') {
+      setDeadlineOrder({ id: orderId, nextStatus });
+      return;
+    }
+
     const doUpdate = async () => {
       setUpdatingId(orderId);
       try { await updateOrderStatus(orderId, nextStatus); await loadOrders(); }
@@ -147,6 +153,50 @@ export default function OrdersScreen() {
           );
         }}
       />
+
+      {/* Deadline Picker Modal */}
+      <Modal visible={!!deadlineOrder} transparent animationType="slide">
+         {deadlineOrder && (
+           <View style={styles.modalOverlay}>
+              <View style={[styles.modalContent, { height: '55%' }]}>
+                 <Text style={styles.modalTitle}>Necha kunda tayyor bo'ladi?</Text>
+                 <Text style={{color: '#a1a1aa', marginTop: 8, marginBottom: 24, lineHeight: 20}}>Mijozga va'da qilingan kunni tanlang. Muddat yaqinlashganda sex xodimlariga avtomatik ogohlantirish boradi.</Text>
+                 
+                 <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center'}}>
+                    {[1, 2, 3, 4, 5, 6].map(days => (
+                       <TouchableOpacity 
+                         key={days}
+                         style={{ backgroundColor: '#27272a', paddingVertical: 16, borderRadius: 16, width: '30%', alignItems: 'center', borderWidth: 1, borderColor: '#3f3f46' }}
+                         onPress={async () => {
+                            const date = new Date();
+                            date.setDate(date.getDate() + days);
+                            setUpdatingId(deadlineOrder.id);
+                            setDeadlineOrder(null);
+                            try {
+                               await updateOrderStatus(deadlineOrder.id, deadlineOrder.nextStatus, undefined, date.toISOString());
+                               await loadOrders();
+                            } catch (err: any) {
+                               Alert.alert('Xatolik', err.message);
+                            } finally {
+                               setUpdatingId(null);
+                            }
+                         }}
+                       >
+                         <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>{days} kun</Text>
+                       </TouchableOpacity>
+                    ))}
+                 </View>
+
+                 <TouchableOpacity 
+                   style={[styles.mainBtn, { backgroundColor: '#3f3f46', marginTop: 24 }]} 
+                   onPress={() => setDeadlineOrder(null)}
+                 >
+                   <Text style={[styles.mainBtnText, { color: '#fff' }]}>Bekor qilish</Text>
+                 </TouchableOpacity>
+              </View>
+           </View>
+         )}
+      </Modal>
 
       {/* Modern Order Details Modal */}
       <Modal visible={!!selectedOrder} transparent animationType="slide">

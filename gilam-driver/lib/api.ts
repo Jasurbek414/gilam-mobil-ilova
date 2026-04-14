@@ -171,10 +171,14 @@ export async function getOrderDetails(orderId: string): Promise<Order> {
   return request<Order>(`/orders/${orderId}`);
 }
 
-export async function updateOrderStatus(orderId: string, status: string, notes?: string): Promise<Order> {
+export async function updateOrderStatus(orderId: string, status: string, notes?: string, deadlineDate?: string): Promise<Order> {
+  const body: any = { status };
+  if (notes) body.notes = notes;
+  if (deadlineDate) body.deadlineDate = deadlineDate;
+  
   return request<Order>(`/orders/${orderId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify(notes ? { status, notes } : { status }),
+    body: JSON.stringify(body),
   });
 }
 
