@@ -36,7 +36,7 @@ export default function ProfileScreen() {
 
   const handleSaveExpense = async () => {
     if (!expenseData.title || !expenseData.amount) {
-      Alert.alert('Xatolik', 'Xarajat nomi va summasini kiritish majburiy!');
+      Alert.alert('Xatolik', `${modalType === 'INCOME' ? 'Kirim' : 'Xarajat'} nomi va summasini kiritish majburiy!`);
       return;
     }
     
@@ -49,12 +49,12 @@ export default function ProfileScreen() {
         amount: Number(expenseData.amount),
         type: modalType || 'EXPENSE',
         category: 'Logistika', // Always logistics for drivers
-        comment: `Haydovchi mobil ilovasidan qo'shildi. ${expenseData.comment}`,
+        comment: `${modalType === 'INCOME' ? 'Kirim' : 'Xarajat'}: Haydovchi mobil ilovasidan qo'shildi. ${expenseData.comment}`,
         date: new Date().toISOString().split('T')[0]
       });
       setModalType(null);
       setExpenseData({ title: '', amount: '', comment: '' });
-      Alert.alert('Bajarildi', 'Kiritilgan mablag xisobotga yozildi.');
+      Alert.alert('Bajarildi', 'Muvaffaqiyatli saqlandi.');
       loadMyExpenses();
     } catch(err: any) {
       Alert.alert('Xatolik', err.message || 'Saqlab bo\'lmadi');
@@ -64,7 +64,7 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteExpense = (id: string, title: string) => {
-    Alert.alert('O\'chirish', `"${title}" xarajatini o'chirib tashlaysizmi?`, [
+    Alert.alert('O\'chirish', `"${title}" malumotini o'chirib tashlaysizmi?`, [
       { text: 'Bekor', style: 'cancel' },
       { text: 'O\'chirish', style: 'destructive', onPress: async () => {
           try {
@@ -182,10 +182,12 @@ export default function ProfileScreen() {
               <Text style={styles.expenseTitle}>{modalType === 'INCOME' ? "Yangi Kirim" : "Yangi Xarajat"}</Text>
 
               <View style={styles.inputBlock}>
-                 <Text style={styles.label}>Nima uchun sarflandi?</Text>
+                 <Text style={styles.label}>
+                   {modalType === 'INCOME' ? 'Kirim sababi yoki manbasi' : 'Nima uchun sarflandi?'}
+                 </Text>
                  <TextInput 
                    style={styles.inputThin} 
-                   placeholder="Masalan: Yoqilg'i, Tushlik" 
+                   placeholder={modalType === 'INCOME' ? "Masalan: Mijozdan olindi, Dastavka..." : "Masalan: Yoqilg'i, Tushlik, Jarima..."} 
                    placeholderTextColor="#52525b"
                    value={expenseData.title}
                    onChangeText={(v) => setExpenseData({...expenseData, title: v})}
