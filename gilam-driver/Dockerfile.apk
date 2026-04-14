@@ -1,0 +1,7 @@
+﻿FROM reactnativecommunity/react-native-android:latest
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install --legacy-peer-deps
+COPY . .
+RUN npx expo prebuild --clean
+RUN cd android && ./gradlew assembleRelease
