@@ -84,9 +84,10 @@ export default function ChatScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{
-        title: `${operatorName} bilan Chat`,
-        headerStyle: { backgroundColor: '#09090b' },
+        title: 'Qo\'llab-quvvatlash markazi',
+        headerStyle: { backgroundColor: '#111827' },
         headerTintColor: '#ffffff',
+        headerTitleStyle: { fontSize: 18, fontWeight: '600' },
         headerLeft: () => (
           <TouchableOpacity onPress={() => router.back()} style={{marginRight: 16}}>
              <Ionicons name="arrow-back" size={24} color="#ffffff" />
@@ -99,34 +100,42 @@ export default function ChatScreen() {
       ) : (
         <KeyboardAvoidingView 
            style={styles.container} 
-           behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
+           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
           <FlatList
             ref={listRef}
             data={messages}
             keyExtractor={(_, index) => index.toString()}
             contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
             onContentSizeChange={() => listRef.current?.scrollToEnd({animated: true})}
             ListEmptyComponent={
                <View style={styles.centerEmpty}>
-                 <Ionicons name="chatbubbles" size={48} color="#27272a" />
-                 <Text style={styles.emptyText}>Savollaringizni shu yerga yozing</Text>
+                 <View style={styles.emptyCircle}>
+                    <Ionicons name="chatbubbles-outline" size={48} color="#94a3b8" />
+                 </View>
+                 <Text style={styles.emptyText}>Xush kelibsiz! Savollaringizni yozing</Text>
+                 <Text style={styles.emptySubText}>Operator tez orada javob beradi</Text>
                </View>
             }
             renderItem={({ item }) => {
               const isMe = item.senderId === user?.id;
+              
+              // Helper to split full name:
+              const fName = (item.sender?.fullName || operatorName).split('-')[0].trim();
+
               return (
                 <View style={[styles.msgRow, isMe ? styles.msgRight : styles.msgLeft]}>
                   <View style={{flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start'}}>
                     {!isMe && (
-                      <Text style={{fontSize: 11, color: '#a1a1aa', marginBottom: 4, marginLeft: 4}}>
-                        {item.sender?.fullName || operatorName}
+                      <Text style={styles.senderNameLabel}>
+                        {fName}
                       </Text>
                     )}
                     <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
-                      <Text style={[styles.msgText, {color: isMe?'#09090b':'#f4f4f5'}]}>{item.text}</Text>
-                      <Text style={[styles.timeText, {color: isMe?'#064e3b':'#71717a'}]}>
+                      <Text style={[styles.msgText, {color: isMe?'#ffffff':'#f8fafc'}]}>{item.text}</Text>
+                      <Text style={[styles.timeText, {color: isMe?'#d1fae5':'#94a3b8'}]}>
                          {new Date(item.createdAt).toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'})}
                       </Text>
                     </View>
@@ -141,15 +150,15 @@ export default function ChatScreen() {
               value={inputText}
               onChangeText={setInputText}
               placeholder="Xabar yozing..."
-              placeholderTextColor="#71717a"
+              placeholderTextColor="#64748b"
               multiline
             />
             <TouchableOpacity 
-               style={[styles.sendBtn, (!inputText.trim() || !operatorId) && {backgroundColor: '#3f3f46'}]} 
+               style={[styles.sendBtn, (!inputText.trim() || !operatorId) && {backgroundColor: '#334155'}]} 
                onPress={sendMessage}
                disabled={!inputText.trim() || !operatorId}
             >
-              <Ionicons name="send" size={18} color="#fff" />
+              <Ionicons name="send" size={18} color="#fff" style={{marginLeft: 3, marginTop: 1}} />
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -159,20 +168,23 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09090b' },
+  container: { flex: 1, backgroundColor: '#0f172a' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16, flexGrow: 1, justifyContent: 'flex-end' },
+  list: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10, flexGrow: 1, justifyContent: 'flex-end' },
   centerEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 60 },
-  emptyText: { color: '#71717a', fontSize: 14, marginTop: 12 },
-  msgRow: { flexDirection: 'row', marginBottom: 12 },
+  emptyCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  emptyText: { color: '#f8fafc', fontSize: 16, fontWeight: '500' },
+  emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 6 },
+  msgRow: { flexDirection: 'row', marginBottom: 14 },
   msgRight: { justifyContent: 'flex-end' },
   msgLeft: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '80%', padding: 12, borderRadius: 16 },
-  bubbleMe: { backgroundColor: '#10b981', borderBottomRightRadius: 4 },
-  bubbleThem: { backgroundColor: '#27272a', borderBottomLeftRadius: 4 },
-  msgText: { fontSize: 15, lineHeight: 20 },
-  timeText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
-  inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#18181b', borderTopWidth: 1, borderTopColor: '#27272a', alignItems: 'flex-end' },
-  input: { flex: 1, backgroundColor: '#27272a', color: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, minHeight: 40, maxHeight: 100 },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center', marginLeft: 8, marginBottom: 2 },
+  senderNameLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4, marginLeft: 2, fontWeight: '500' },
+  bubble: { maxWidth: '85%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, shadowColor: '#000', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, elevation: 1 },
+  bubbleMe: { backgroundColor: '#059669', borderBottomRightRadius: 4 },
+  bubbleThem: { backgroundColor: '#1e293b', borderBottomLeftRadius: 4 },
+  msgText: { fontSize: 15, lineHeight: 22 },
+  timeText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end', fontWeight: '500' },
+  inputContainer: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#1e293b', borderTopWidth: 1, borderTopColor: '#334155', alignItems: 'flex-end' },
+  input: { flex: 1, backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: 24, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, minHeight: 48, maxHeight: 120, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#059669', justifyContent: 'center', alignItems: 'center', marginLeft: 10, marginBottom: 2, shadowColor: '#059669', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.4, elevation: 2 },
 });
