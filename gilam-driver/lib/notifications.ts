@@ -40,16 +40,19 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
     try {
-      const projectId =
-        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-      if (!projectId) {
-         // Fallback if not using EAS directly yet
-         token = (await Notifications.getExpoPushTokenAsync()).data;
-      } else {
-         token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      // Expo Go da (Android SDK 53+) Push Token ishlamaydi va qizil xato beradi!
+      // Faqat haqiqiy APK build bo'lganda bu koddan tokenni olamiz.
+      if (Constants.appOwnership === 'expo') {
+          console.log('[Push] Expo Go muhiti aniqlandi. Push token olinmaydi.');
+          return null;
       }
+
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId ?? 'gilam-driver-test';
+        
+      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     } catch (e) {
-      console.error('Push token error:', e);
+      console.log('[Push] Push token error info:', e.message);
     }
   } else {
     console.warn('Push xabarnomalar faqat haqiqiy qurilmalarda ishlaydi');
