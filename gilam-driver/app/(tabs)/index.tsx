@@ -104,49 +104,47 @@ export default function OrdersScreen() {
             >
               <View style={styles.cardHeaderPremium}>
                  <View style={styles.customerBlockPremium}>
-                    <Text style={styles.cNamePremium} numberOfLines={1}>{item.customer?.fullName || 'Noma\'lum shaxs'}</Text>
-                    <Text style={styles.cIdPremium}>#{item.id.substring(0, 8)}</Text>
+                    <Text style={styles.cNamePremium} numberOfLines={1}>
+                       {item.customer?.fullName || 'Noma\'lum shaxs'} <Text style={styles.cIdPremium}> #{item.id.substring(0, 5)}</Text>
+                    </Text>
                  </View>
                  <View style={styles.statusBadgePremium}>
                     <Text style={styles.statusBadgeTextPremium}>{config.emoji} {config.label}</Text>
                  </View>
               </View>
               
-              {/* Detailed item composition directly on the card */}
-              {item.items && item.items.length > 0 && (
-                 <View style={styles.cardItemsBlock}>
-                    <Ionicons name="layers-outline" size={14} color="#10b981" style={{marginRight: 8}} />
-                    <Text style={styles.itemsSummaryText} numberOfLines={2}>
-                       {item.items.map(i => `${i.service?.name || 'Mahsulot'} (${i.quantity}${i.service?.measurementUnit ? ' '+i.service.measurementUnit : ''})`).join(' • ')}
-                    </Text>
-                 </View>
-              )}
+              <View style={styles.cardBodyInline}>
+                 {item.items && item.items.length > 0 && (
+                    <View style={styles.cardItemsInline}>
+                       <Ionicons name="layers-outline" size={13} color="#10b981" style={{marginRight: 6}} />
+                       <Text style={styles.itemsInlineText} numberOfLines={1}>
+                          {item.items.map(i => `${i.service?.name} (${i.quantity}${i.service?.measurementUnit ? i.service.measurementUnit : ''})`).join(', ')}
+                       </Text>
+                    </View>
+                 )}
 
-              {/* Special notes block heavily highlighted if it exists */}
-              {item.notes && (
-                 <View style={styles.noteBlock}>
-                    <Ionicons name="chatbox-ellipses-outline" size={14} color="#facc15" style={{marginRight: 8}} />
-                    <Text style={styles.noteText} numberOfLines={1}>{item.notes}</Text>
-                 </View>
-              )}
+                 {user?.appRole !== 'FACILITY' && item.customer?.address && (
+                   <View style={styles.cardItemsInline}>
+                      <Ionicons name="location-outline" size={13} color="#a1a1aa" style={{marginRight: 6}} />
+                      <Text style={styles.itemsInlineText} numberOfLines={1}>
+                         {item.customer.address}
+                      </Text>
+                   </View>
+                 )}
 
-              {user?.appRole !== 'FACILITY' && item.customer?.address && (
-                <View style={styles.driverInfoBlock}>
-                   <Ionicons name="location-outline" size={14} color="#a1a1aa" style={{marginRight: 8}} />
-                   <Text style={styles.addressText} numberOfLines={2}>
-                      {item.customer.address}
-                   </Text>
-                </View>
-              )}
+                 {item.notes && (
+                    <View style={styles.noteInline}>
+                       <Ionicons name="chatbox-ellipses-outline" size={13} color="#facc15" style={{marginRight: 6}} />
+                       <Text style={styles.noteInlineText} numberOfLines={1}>{item.notes}</Text>
+                    </View>
+                 )}
+              </View>
 
-              <View style={styles.cardFooterPremium}>
-                 <Text style={styles.metaTextPremium}>
-                   <Ionicons name="cube-outline" size={14} color="#71717a"/> {item.items?.length || 0} xil tur
-                   {user?.appRole !== 'FACILITY' ? `   •   ${Number(item.totalAmount).toLocaleString()} so'm` : ''}
-                 </Text>
-                 <View style={styles.actionArrow}>
-                    <Text style={styles.actionArrowText}>Batafsil</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#10b981" />
+              <View style={styles.cardFooterInline}>
+                 <Text style={styles.metaTextInline}>📦 {item.items?.length || 0} xil tur</Text>
+                 <View style={styles.actionArrowInline}>
+                    <Text style={styles.actionArrowTextInline}>Batafsil</Text>
+                    <Ionicons name="chevron-forward" size={12} color="#10b981" />
                  </View>
               </View>
             </TouchableOpacity>
@@ -347,23 +345,22 @@ const styles = StyleSheet.create({
   cFooterMini: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#27272a', paddingTop: 10 },
   cMetaMini: { fontSize: 13, color: '#10b981', fontWeight: '800' },
 
-  cardPremium: { backgroundColor: '#121214', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#27272A' },
-  cardHeaderPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  customerBlockPremium: { flex: 1, marginRight: 12 },
-  cNamePremium: { color: '#ffffff', fontSize: 18, fontWeight: '700', letterSpacing: -0.3, marginBottom: 4 },
-  cIdPremium: { color: '#71717a', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  statusBadgePremium: { backgroundColor: '#18181b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.2)' },
-  statusBadgeTextPremium: { color: '#10b981', fontSize: 11, fontWeight: '700' },
-  cardItemsBlock: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#18181b', padding: 12, borderRadius: 12, marginBottom: 8 },
-  itemsSummaryText: { color: '#d4d4d8', fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 20 },
-  noteBlock: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(250, 204, 21, 0.05)', padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(250, 204, 21, 0.1)' },
-  noteText: { color: '#facc15', fontSize: 13, fontWeight: '600', flex: 1 },
-  driverInfoBlock: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
-  addressText: { color: '#a1a1aa', fontSize: 13, flex: 1, lineHeight: 18, fontWeight: '500' },
-  cardFooterPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#27272A' },
-  metaTextPremium: { color: '#a1a1aa', fontSize: 13, fontWeight: '600' },
-  actionArrow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  actionArrowText: { color: '#10b981', fontSize: 11, fontWeight: '700', marginRight: 4 },
+  cardPremium: { backgroundColor: '#18181b', borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#27272a' },
+  cardHeaderPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  customerBlockPremium: { flex: 1, marginRight: 8 },
+  cNamePremium: { color: '#ffffff', fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
+  cIdPremium: { color: '#71717a', fontSize: 13, fontWeight: '500', marginLeft: 6 },
+  statusBadgePremium: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  statusBadgeTextPremium: { color: '#10b981', fontSize: 11, fontWeight: '800' },
+  cardBodyInline: { marginBottom: 12, gap: 6 },
+  cardItemsInline: { flexDirection: 'row', alignItems: 'center' },
+  itemsInlineText: { color: '#a1a1aa', fontSize: 13, fontWeight: '500', flex: 1 },
+  noteInline: { flexDirection: 'row', alignItems: 'center' },
+  noteInlineText: { color: '#facc15', fontSize: 13, fontWeight: '600', flex: 1 },
+  cardFooterInline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  metaTextInline: { color: '#71717a', fontSize: 12, fontWeight: '600' },
+  actionArrowInline: { flexDirection: 'row', alignItems: 'center' },
+  actionArrowTextInline: { color: '#10b981', fontSize: 12, fontWeight: '700', marginRight: 2 },
 
   modalActionGrid: { flexDirection: 'row', gap: 12, marginTop: 12, marginBottom: 16 },
   mBtnCall: { flex: 1, backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 48, borderRadius: 12, gap: 8 },
