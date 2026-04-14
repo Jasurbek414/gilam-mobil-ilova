@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { getMyOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
+import { getMyOrders, getFacilityOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
@@ -16,7 +16,15 @@ export default function OrdersScreen() {
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
-    try { const data = await getMyOrders(user.id); setOrders(data || []); }
+    try { 
+      let data = [];
+      if (user.appRole === 'FACILITY') {
+        data = await getFacilityOrders(user.companyId);
+      } else {
+        data = await getMyOrders(user.id);
+      }
+      setOrders(data || []); 
+    }
     catch (err: any) { console.warn('Load orders error:', err); }
     finally { setLoading(false); setRefreshing(false); }
   }, [user]);

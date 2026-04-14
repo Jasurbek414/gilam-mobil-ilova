@@ -19,6 +19,8 @@ export default function LoginScreen() {
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [appRole, setAppRole] = useState('DRIVER');
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
@@ -49,7 +51,9 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const user = await login(phone.trim(), password.trim(), companyName.trim());
-      setUser(user);
+      // Override or append the explicit appRole from Login
+      const customizedUser = { ...user, appRole };
+      setUser(customizedUser);
       router.replace('/');
     } catch (err: any) {
       Alert.alert('Xatolik', err.message || 'Kirishda xatolik');
@@ -90,6 +94,18 @@ export default function LoginScreen() {
                   {companyName ? companyName : "Kampaniya nomini tanlang"}
                 </Text>
                 {loadingCompanies ? <ActivityIndicator size="small" color="#10b981" /> : <Ionicons name="chevron-down" size={20} color="#71717a" />}
+             </TouchableOpacity>
+
+             <TouchableOpacity 
+                style={[styles.inputContainer, { paddingHorizontal: 16 }]} 
+                activeOpacity={0.7} 
+                onPress={() => setIsRoleModalOpen(true)}
+             >
+                <Ionicons name="people" size={20} color="#71717a" style={styles.inputIcon} />
+                <Text style={[styles.input, { color: '#ffffff', paddingTop: 2 }]}>
+                  {appRole === 'DRIVER' ? "Haydovchi (Yetkazib berish)" : "Sex xodimi (Yuvish/Quritish/Qadoq)"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#71717a" />
              </TouchableOpacity>
 
              <View style={styles.inputContainer}>
@@ -166,6 +182,42 @@ export default function LoginScreen() {
                        <Text style={styles.companyOptionText}>{c.name}</Text>
                     </TouchableOpacity>
                   ))}
+               </ScrollView>
+            </View>
+         </View>
+      </Modal>
+
+      {/* Role Selector Modal */}
+      <Modal visible={isRoleModalOpen} transparent animationType="slide">
+         <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+               <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Qaysi vazifada ishlaysiz?</Text>
+                  <TouchableOpacity onPress={() => setIsRoleModalOpen(false)} style={styles.closeBtn}>
+                     <Ionicons name="close" size={24} color="#ffffff" />
+                  </TouchableOpacity>
+               </View>
+               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                   <TouchableOpacity 
+                     style={styles.companyOption}
+                     onPress={() => {
+                        setAppRole('DRIVER');
+                        setIsRoleModalOpen(false);
+                     }}
+                   >
+                      <Ionicons name="car-outline" size={20} color="#10b981" style={{marginRight: 12}} />
+                      <Text style={styles.companyOptionText}>Haydovchi (Yetkazish)</Text>
+                   </TouchableOpacity>
+                   <TouchableOpacity 
+                     style={styles.companyOption}
+                     onPress={() => {
+                        setAppRole('FACILITY');
+                        setIsRoleModalOpen(false);
+                     }}
+                   >
+                      <Ionicons name="water-outline" size={20} color="#10b981" style={{marginRight: 12}} />
+                      <Text style={styles.companyOptionText}>Sex Xodimi (Yuvish/Quritish)</Text>
+                   </TouchableOpacity>
                </ScrollView>
             </View>
          </View>

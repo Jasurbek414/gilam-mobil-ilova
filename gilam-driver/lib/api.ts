@@ -159,6 +159,10 @@ export async function getMyOrders(userId: string): Promise<Order[]> {
   return request<Order[]>(`/orders/driver/${userId}`);
 }
 
+export async function getFacilityOrders(companyId: string): Promise<Order[]> {
+  return request<Order[]>(`/orders/facility/${companyId}`);
+}
+
 export async function getOrderDetails(orderId: string): Promise<Order> {
   return request<Order>(`/orders/${orderId}`);
 }
@@ -205,18 +209,24 @@ export const STATUS_CONFIG: Record<string, {
     emoji: '🏭',
     color: '#7c3aed',
     bg: '#ede9fe',
+    next: 'WASHING',
+    nextLabel: '🧼 Yuvishga o\'tkazish',
   },
   WASHING: {
     label: 'Yuvilmoqda',
     emoji: '🧼',
     color: '#0891b2',
     bg: '#cffafe',
+    next: 'DRYING',
+    nextLabel: '☀️ Quritishga o\'tkazish',
   },
   DRYING: {
     label: 'Quritilmoqda',
     emoji: '☀️',
     color: '#0284c7',
     bg: '#e0f2fe',
+    next: 'READY_FOR_DELIVERY',
+    nextLabel: '📦 Qadoqlab topshirish',
   },
   READY_FOR_DELIVERY: {
     label: 'Yetkazishga tayyor',
