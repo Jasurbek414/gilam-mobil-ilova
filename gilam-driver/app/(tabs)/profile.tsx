@@ -81,14 +81,21 @@ export default function ProfileScreen() {
            </View>
         </View>
 
-        <TouchableOpacity style={styles.expenseBtn} onPress={() => setShowExpense(true)} activeOpacity={0.8}>
-           <Ionicons name="card" size={20} color="#10b981" style={{marginRight: 8}} />
-           <Text style={styles.expenseText}>MOLIYAVIY XARAJAT KIRITISH</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setShowExpense(true)} activeOpacity={0.8}>
+             <View style={[styles.actionIconBg, {backgroundColor: 'rgba(16, 185, 129, 0.15)'}]}>
+                <Ionicons name="wallet-outline" size={24} color="#10b981" />
+             </View>
+             <Text style={styles.actionCardText}>Xarajat{'\n'}qo'shish</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => setShowLogout(true)} activeOpacity={0.8}>
-           <Text style={styles.logoutText}>HISOBLAN CHIQISH</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtnCard} onPress={() => setShowLogout(true)} activeOpacity={0.8}>
+             <View style={[styles.actionIconBg, {backgroundColor: 'rgba(239, 68, 68, 0.1)'}]}>
+                <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+             </View>
+             <Text style={styles.actionCardText}>Hisobdan{'\n'}chiqish</Text>
+          </TouchableOpacity>
+        </View>
 
       </ScrollView>
 
@@ -98,20 +105,16 @@ export default function ProfileScreen() {
           <ScrollView contentContainerStyle={styles.expenseModalScroll}>
             <View style={styles.expenseModalCard}>
               
-              <View style={styles.expenseHeader}>
-                <View style={styles.expenseIconWrap}>
-                   <Ionicons name="wallet" size={28} color="#10b981" />
-                </View>
-                <Text style={styles.expenseTitle}>Yangi Xarajat</Text>
-                <Text style={styles.expenseSub}>Kiritilgan pullar avtomatik asosiy xisobotga yoziladi.</Text>
-              </View>
+              <View style={styles.dragHandle} />
+              
+              <Text style={styles.expenseTitle}>Yangi Xarajat</Text>
 
               <View style={styles.inputBlock}>
                  <Text style={styles.label}>Nima uchun sarflandi?</Text>
                  <TextInput 
-                   style={styles.input} 
-                   placeholder="Masalan: Yoqilg'i uchun" 
-                   placeholderTextColor="#71717a"
+                   style={styles.inputThin} 
+                   placeholder="Masalan: Yoqilg'i, Tushlik" 
+                   placeholderTextColor="#52525b"
                    value={expenseData.title}
                    onChangeText={(v) => setExpenseData({...expenseData, title: v})}
                  />
@@ -120,9 +123,9 @@ export default function ProfileScreen() {
               <View style={styles.inputBlock}>
                  <Text style={styles.label}>Summa (so'm)</Text>
                  <TextInput 
-                   style={styles.input} 
-                   placeholder="250000" 
-                   placeholderTextColor="#71717a"
+                   style={styles.inputThin} 
+                   placeholder="250 000" 
+                   placeholderTextColor="#52525b"
                    keyboardType="numeric"
                    value={expenseData.amount}
                    onChangeText={(v) => setExpenseData({...expenseData, amount: v})}
@@ -130,11 +133,11 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.inputBlock}>
-                 <Text style={styles.label}>Izoh (majburiy emas)</Text>
+                 <Text style={styles.label}>Izoh (ixtiyoriy)</Text>
                  <TextInput 
-                   style={[styles.input, {height: 80}]} 
-                   placeholder="Izoh qoldirish..." 
-                   placeholderTextColor="#71717a"
+                   style={[styles.inputThin, {height: 80, paddingVertical: 16}]} 
+                   placeholder="Shamol bo'lib qolsin..." 
+                   placeholderTextColor="#52525b"
                    multiline
                    textAlignVertical="top"
                    value={expenseData.comment}
@@ -143,11 +146,11 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.mCmds}>
-                <TouchableOpacity style={[styles.mBtnCancel, {flex: 1}]} onPress={() => setShowExpense(false)}>
+                <TouchableOpacity style={styles.mBtnCancel} onPress={() => setShowExpense(false)}>
                   <Text style={styles.mBtnCancelText}>Bekor qilish</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.mBtnConfirm, {flex: 1}]} onPress={handleSaveExpense} disabled={savingExpense}>
-                  {savingExpense ? <ActivityIndicator color="#fff" /> : <Text style={styles.mBtnConfirmText}>Saqlash</Text>}
+                <TouchableOpacity style={styles.fatGreenBtn} onPress={handleSaveExpense} disabled={savingExpense}>
+                  {savingExpense ? <ActivityIndicator color="#fff" /> : <Text style={styles.fatGreenText}>Tasdiqlash</Text>}
                 </TouchableOpacity>
               </View>
 
@@ -204,19 +207,21 @@ const styles = StyleSheet.create({
   mBtnOut: { flex: 1, height: 50, borderRadius: 12, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center' },
   mBtnCancelText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
   mBtnOutText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
-  
-  expenseBtn: { backgroundColor: 'rgba(16, 185, 129, 0.1)', height: 60, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#10b981', marginBottom: 16 },
-  expenseText: { color: '#10b981', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
-  expenseModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+  actionRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
+  actionBtnCard: { flex: 1, backgroundColor: '#18181b', borderRadius: 24, padding: 20, alignItems: 'center', justifyContent: 'center', elevation: 2 },
+  actionIconBg: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  actionCardText: { color: '#ffffff', fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 20 },
+
+  expenseModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   expenseModalScroll: { flexGrow: 1, justifyContent: 'flex-end' },
-  expenseModalCard: { backgroundColor: '#18181b', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, borderWidth: 1, borderColor: '#27272a', borderBottomWidth: 0 },
-  expenseHeader: { alignItems: 'center', marginBottom: 24 },
-  expenseIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#10b981' },
-  expenseTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  expenseSub: { fontSize: 13, color: '#a1a1aa', textAlign: 'center' },
-  inputBlock: { marginBottom: 20 },
-  label: { color: '#a1a1aa', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8, marginLeft: 4, letterSpacing: 1 },
-  input: { backgroundColor: '#09090b', borderWidth: 1, borderColor: '#27272a', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, color: '#fff', fontSize: 16, fontWeight: '600' },
-  mBtnConfirm: { paddingVertical: 14, backgroundColor: '#10b981', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  mBtnConfirmText: { color: '#fff', fontSize: 15, fontWeight: '800' }
+  expenseModalCard: { backgroundColor: '#18181b', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingBottom: 40, paddingTop: 16 },
+  dragHandle: { width: 40, height: 4, backgroundColor: '#3f3f46', borderRadius: 2, alignSelf: 'center', marginBottom: 24 },
+  expenseTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 24, textAlign: 'center' },
+  
+  inputBlock: { marginBottom: 16 },
+  label: { color: '#a1a1aa', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 1 },
+  inputThin: { backgroundColor: '#27272a', borderRadius: 16, height: 56, paddingHorizontal: 16, color: '#fff', fontSize: 15, fontWeight: '600' },
+  
+  fatGreenBtn: { flex: 1, height: 56, backgroundColor: '#10b981', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+  fatGreenText: { color: '#fff', fontSize: 15, fontWeight: '800' }
 });
