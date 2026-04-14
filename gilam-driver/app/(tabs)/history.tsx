@@ -14,6 +14,8 @@ export default function HistoryScreen() {
 
   const [showRewashInput, setShowRewashInput] = useState(false);
   const [rewashReason, setRewashReason] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
 
   const handleRewashSubmit = async () => {
     if (!selectedOrder) return;
@@ -57,12 +59,66 @@ export default function HistoryScreen() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  const filteredOrders = orders.filter(o => {
+    if (filterStatus !== "ALL" && o.status !== filterStatus) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchId = o.id.toLowerCase().includes(q);
+      const matchName = o.customer?.fullName?.toLowerCase().includes(q);
+      const matchPhone1 = o.customer?.phone1?.toLowerCase().includes(q);
+      const matchPhone2 = o.customer?.phone2?.toLowerCase().includes(q);
+      if (!matchId && !matchName && !matchPhone1 && !matchPhone2) return false;
+    }
+    return true;
+  });
+
+  const availableStatuses = ["ALL", ...Array.from(new Set(orders.map(o => o.status)))];
+
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#10b981" /></View>;
 
   return (
     <View style={styles.container}>
+      
+      <View style={styles.topFilterBox}>
+         <View style={styles.searchWrap}>
+            <Ionicons name="search" size={20} color="#71717a" style={styles.searchIcon} />
+            <TextInput 
+               style={styles.searchInput}
+               placeholder="Qidiruv (Ism, Tel, ID)..."
+               placeholderTextColor="#71717a"
+               value={searchQuery}
+               onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+               <TouchableOpacity onPress={() => setSearchQuery("")} style={{ padding: 4 }}>
+                  <Ionicons name="close-circle" size={20} color="#71717a" />
+               </TouchableOpacity>
+            )}
+         </View>
+         
+         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {availableStatuses.map(status => {
+               const isActive = filterStatus === status;
+               let label = "Barchasi";
+               if (status !== "ALL") {
+                 label = STATUS_CONFIG[status]?.label || status;
+               }
+               
+               return (
+                 <TouchableOpacity 
+                    key={status}
+                    style={[styles.filterChip, isActive && styles.filterChipActive]}
+                    onPress={() => setFilterStatus(status)}
+                 >
+                    <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>{label}</Text>
+                 </TouchableOpacity>
+               )
+            })}
+         </ScrollView>
+      </View>
+
       <FlatList
-        data={orders}
+        data={filteredOrders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadHistory(); }} tintColor="#10b981" />}
@@ -199,6 +255,15 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#09090b' },
   container: { flex: 1, backgroundColor: '#09090b' },
+  topFilterBox: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#18181b', borderRadius: 16, paddingHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: '#27272a', height: 52 },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, color: '#ffffff', fontSize: 16, height: '100%' },
+  filterScroll: { gap: 8, paddingBottom: 8 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#18181b', borderWidth: 1, borderColor: '#27272a' },
+  filterChipActive: { backgroundColor: '#10b981', borderColor: '#10b981' },
+  filterChipText: { color: '#a1a1aa', fontSize: 14, fontWeight: '700' },
+  filterChipTextActive: { color: '#064e3b', fontWeight: '800' },
   list: { padding: 16, paddingBottom: 100 },
   card: { backgroundColor: '#18181b', borderRadius: 20, padding: 20, marginBottom: 12, borderWidth: 1, borderColor: '#27272a' },
   rowInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
