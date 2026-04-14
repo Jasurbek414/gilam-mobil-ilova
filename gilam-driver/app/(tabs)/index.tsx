@@ -79,6 +79,11 @@ export default function OrdersScreen() {
           )
         }} 
       />
+      <View style={{ backgroundColor: 'red', padding: 10 }}>
+         <Text style={{ color: 'white', fontWeight: 'bold' }}>
+           DEBUG -> BackEndRole: {user?.role} | AppRole: {user?.appRole}
+         </Text>
+      </View>
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
