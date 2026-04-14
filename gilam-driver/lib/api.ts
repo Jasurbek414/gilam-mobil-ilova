@@ -123,7 +123,7 @@ export async function getCompanies(): Promise<{id: string, name: string}[]> {
     if (!res.ok) throw new Error('Status not ok');
     return await res.json();
   } catch (err) {
-    throw new Error('Kompaniyalarni yuklashda xato!');
+    throw err;
   }
 }
 
