@@ -170,8 +170,8 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   });
 }
 
-export async function getCompanyOrders(companyId: string): Promise<Order[]> {
-  return request<Order[]>(`/orders/company/${companyId}`);
+export async function getDriverCompletedOrders(driverId: string): Promise<Order[]> {
+  return request<Order[]>(`/orders/driver/${driverId}/history`);
 }
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
