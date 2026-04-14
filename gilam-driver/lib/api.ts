@@ -135,8 +135,8 @@ export async function login(phone: string, password: string, companyName: string
     body: JSON.stringify({ phone, password }),
   });
 
-  if (data.user.role !== 'DRIVER') {
-    throw new Error('Bu ilova faqat haydovchilar uchun');
+  if (data.user.role !== 'DRIVER' && data.user.role !== 'WASHER' && data.user.role !== 'FINISHER') {
+    throw new Error('Bu ilova faqat Haydovchi va Sex xodimlari uchun!');
   }
 
   // Kampaniya nomini tekshirish

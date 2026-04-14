@@ -88,7 +88,11 @@ export default function OrdersScreen() {
           <View style={styles.empty}>
              <Ionicons name="documents-outline" size={64} color="#27272a" />
              <Text style={styles.emptyTitle}>Sog'inch bilan kutamiz</Text>
-             <Text style={styles.emptyDesc}>Sizga biriktirilgan yetkazib berish jarayonlari shu yerda chiqadi.</Text>
+             <Text style={styles.emptyDesc}>
+               {user?.appRole === 'FACILITY' 
+                 ? "Hozircha sexga kelib tushgan ishlar yo'q. Baraka kelishini kutamiz!" 
+                 : "Sizga biriktirilgan yetkazib berish jarayonlari shu yerda chiqadi."}
+             </Text>
           </View>
         }
         renderItem={({ item }) => {
