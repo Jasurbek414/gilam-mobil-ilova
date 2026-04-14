@@ -342,28 +342,35 @@ export default function OrdersScreen() {
                         ) : null}
                      </View>
 
-                     <Text style={[styles.sectionTitle, { marginTop: 8, marginBottom: 8 }]}>Narsalar ro'yxati</Text>
-                     {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
-                         <Text style={styles.emptyItems}>Ichida narsalar hali biriktirilmagan.</Text>
-                     ) : (
-                        <View style={{ backgroundColor: '#18181b', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#27272a', marginBottom: 16 }}>
-                           {selectedOrder.items.map((it, idx) => (
-                              <View key={it.id || idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: idx === selectedOrder.items!.length - 1 ? 0 : 1, borderBottomColor: '#27272a' }}>
-                                 <View style={{ flex: 1, paddingRight: 12 }}>
-                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 4 }} numberOfLines={1}>
+                     <View style={{ marginBottom: 24 }}>
+                        <Text style={{ color: '#71717a', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5 }}>Tarkibiy Qismlar</Text>
+                        
+                        {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
+                            <Text style={styles.emptyItems}>Hozircha narsalar kiritilmagan.</Text>
+                        ) : (
+                           selectedOrder.items.map((it, idx) => (
+                              <View key={it.id || idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: idx === selectedOrder.items!.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                 
+                                 <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255, 255, 255, 0.03)', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                                    <Ionicons name="layers" size={20} color="#a1a1aa" />
+                                 </View>
+
+                                 <View style={{ flex: 1, paddingRight: 10 }}>
+                                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 }} numberOfLines={1}>
                                        {it.service?.name || 'Xizmat turi mavjud emas'}
                                     </Text>
-                                    <Text style={{ color: '#a1a1aa', fontSize: 12, fontWeight: '600' }}>
+                                    <Text style={{ color: '#71717a', fontSize: 12, fontWeight: '500' }}>
                                        {it.quantity} {it.service?.measurementUnit || 'kv.m'}
-                                       {(it.width && it.length) ? `  •  ${it.width} x ${it.length}` : ''}
+                                       {(it.width && it.length) ? `   •   ${it.width} x ${it.length}` : ''}
                                     </Text>
                                  </View>
+
                                  {user?.appRole !== 'FACILITY' ? (
-                                   <View style={{ width: 85 }}>
+                                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                       <TextInput 
-                                          style={{ color: '#10b981', fontSize: 16, fontWeight: '900', textAlign: 'right', minWidth: 60, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#3f3f46' }}
+                                          style={{ color: '#10b981', fontSize: 16, fontWeight: '800', textAlign: 'right', minWidth: 46, paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(16, 185, 129, 0.3)' }}
                                           placeholder="0"
-                                          placeholderTextColor="#52525b"
+                                          placeholderTextColor="#3f3f46"
                                           keyboardType="numeric"
                                           defaultValue={it.totalPrice && Number(it.totalPrice) > 0 ? String(it.totalPrice) : ''}
                                           onEndEditing={async (e) => {
@@ -377,16 +384,17 @@ export default function OrdersScreen() {
                                              }
                                           }}
                                       />
+                                      <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '700', opacity: 0.8, marginLeft: 4, marginTop: 4 }}>so'm</Text>
                                    </View>
                                  ) : (
-                                    <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '800' }}>
-                                       {Number(it.totalPrice || 0).toLocaleString()} so'm
+                                    <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '800' }}>
+                                       {Number(it.totalPrice || 0).toLocaleString()} <Text style={{ fontSize: 12, fontWeight: '600', opacity: 0.8 }}>so'm</Text>
                                     </Text>
                                  )}
                               </View>
-                           ))}
-                        </View>
-                     )}
+                           ))
+                        )}
+                     </View>
 
                      <View style={{ height: 24 }} />
                      
