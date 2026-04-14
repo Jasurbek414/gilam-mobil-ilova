@@ -70,6 +70,14 @@ export interface OrderItem {
   barcode?: string;
 }
 
+export interface FacilityStage {
+  id: string;
+  companyId: string;
+  name: string;
+  icon: string;
+  orderIndex: number;
+}
+
 export interface Order {
   id: string;
   status: OrderStatus;
@@ -79,6 +87,8 @@ export interface Order {
   paidAmount?: number;
   paymentStatus?: string;
   notes?: string;
+  facilityStageId?: string | null;
+  facilityStage?: FacilityStage | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -236,14 +246,6 @@ export async function getFacilityCompletedOrders(companyId: string): Promise<Ord
 }
 
 // ─── Dynamic Stages API ───────────────────────────────────────────────────────
-
-export interface FacilityStage {
-  id: string;
-  companyId: string;
-  name: string;
-  icon: string;
-  orderIndex: number;
-}
 
 export async function getFacilityStages(companyId: string): Promise<FacilityStage[]> {
   return request<FacilityStage[]>(`/facility-stages/company/${companyId}`);
