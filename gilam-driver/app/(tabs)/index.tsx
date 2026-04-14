@@ -92,29 +92,56 @@ export default function OrdersScreen() {
 
           return (
             <TouchableOpacity 
-              style={styles.cardCompact} 
+              style={styles.cardPremium} 
               activeOpacity={0.7}
               onPress={() => setSelectedOrder(item)}
             >
-              <View style={styles.cRow}>
-                 <Text style={styles.cNameMini} numberOfLines={1}>{item.customer?.fullName || 'Noma\'lum shaxs'}</Text>
-                 <View style={styles.statusBadgeCompact}>
-                    <Text style={styles.statusBadgeText}>{config.emoji} {config.label}</Text>
+              <View style={styles.cardHeaderPremium}>
+                 <View style={styles.customerBlockPremium}>
+                    <Text style={styles.cNamePremium} numberOfLines={1}>{item.customer?.fullName || 'Noma\'lum shaxs'}</Text>
+                    <Text style={styles.cIdPremium}>#{item.id.substring(0, 8)}</Text>
+                 </View>
+                 <View style={styles.statusBadgePremium}>
+                    <Text style={styles.statusBadgeTextPremium}>{config.emoji} {config.label}</Text>
                  </View>
               </View>
               
-              {user?.appRole !== 'FACILITY' && (
-                <Text style={styles.cAddressMini} numberOfLines={1}>
-                   <Ionicons name="location" size={12} color="#71717a" /> {item.customer?.address || "Manzil kiritilmagan"}
-                </Text>
+              {/* Detailed item composition directly on the card */}
+              {item.items && item.items.length > 0 && (
+                 <View style={styles.cardItemsBlock}>
+                    <Ionicons name="layers-outline" size={14} color="#10b981" style={{marginRight: 8}} />
+                    <Text style={styles.itemsSummaryText} numberOfLines={2}>
+                       {item.items.map(i => `${i.service?.name || 'Mahsulot'} (${i.quantity}${i.service?.measurementUnit ? ' '+i.service.measurementUnit : ''})`).join(' • ')}
+                    </Text>
+                 </View>
               )}
 
-              <View style={styles.cFooterMini}>
-                 <Text style={styles.cMetaMini}>
-                   {item.items?.length || 0} xil narsa
-                   {user?.appRole !== 'FACILITY' ? ` • ${Number(item.totalAmount).toLocaleString()} sum` : ''}
+              {/* Special notes block heavily highlighted if it exists */}
+              {item.notes && (
+                 <View style={styles.noteBlock}>
+                    <Ionicons name="chatbox-ellipses-outline" size={14} color="#facc15" style={{marginRight: 8}} />
+                    <Text style={styles.noteText} numberOfLines={1}>{item.notes}</Text>
+                 </View>
+              )}
+
+              {user?.appRole !== 'FACILITY' && item.customer?.address && (
+                <View style={styles.driverInfoBlock}>
+                   <Ionicons name="location-outline" size={14} color="#a1a1aa" style={{marginRight: 8}} />
+                   <Text style={styles.addressText} numberOfLines={2}>
+                      {item.customer.address}
+                   </Text>
+                </View>
+              )}
+
+              <View style={styles.cardFooterPremium}>
+                 <Text style={styles.metaTextPremium}>
+                   <Ionicons name="cube-outline" size={14} color="#71717a"/> {item.items?.length || 0} xil tur
+                   {user?.appRole !== 'FACILITY' ? `   •   ${Number(item.totalAmount).toLocaleString()} so'm` : ''}
                  </Text>
-                 <Ionicons name="chevron-forward" size={16} color="#71717a" />
+                 <View style={styles.actionArrow}>
+                    <Text style={styles.actionArrowText}>Batafsil</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#10b981" />
+                 </View>
               </View>
             </TouchableOpacity>
           );
@@ -192,7 +219,7 @@ export default function OrdersScreen() {
                                  )}
                               </View>
                               <View style={styles.itemDetails}>
-                                 <Text style={styles.itemMetric}>{it.quantity} qism</Text>
+                                 <Text style={styles.itemMetric}>{it.quantity} {it.service?.measurementUnit || 'kv.m'}</Text>
                                  {(it.width && it.length) ? (
                                     <Text style={styles.itemDim}>{it.width} x {it.length} = {(it.width * it.length).toFixed(2)} m²</Text>
                                  ) : null}
@@ -269,6 +296,24 @@ const styles = StyleSheet.create({
   cAddressMini: { fontSize: 12, color: '#a1a1aa', marginBottom: 12 },
   cFooterMini: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#27272a', paddingTop: 10 },
   cMetaMini: { fontSize: 13, color: '#10b981', fontWeight: '800' },
+
+  cardPremium: { backgroundColor: '#121214', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#27272A' },
+  cardHeaderPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  customerBlockPremium: { flex: 1, marginRight: 12 },
+  cNamePremium: { color: '#ffffff', fontSize: 18, fontWeight: '700', letterSpacing: -0.3, marginBottom: 4 },
+  cIdPremium: { color: '#71717a', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  statusBadgePremium: { backgroundColor: '#18181b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.2)' },
+  statusBadgeTextPremium: { color: '#10b981', fontSize: 11, fontWeight: '700' },
+  cardItemsBlock: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#18181b', padding: 12, borderRadius: 12, marginBottom: 8 },
+  itemsSummaryText: { color: '#d4d4d8', fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 20 },
+  noteBlock: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(250, 204, 21, 0.05)', padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(250, 204, 21, 0.1)' },
+  noteText: { color: '#facc15', fontSize: 13, fontWeight: '600', flex: 1 },
+  driverInfoBlock: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
+  addressText: { color: '#a1a1aa', fontSize: 13, flex: 1, lineHeight: 18, fontWeight: '500' },
+  cardFooterPremium: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#27272A' },
+  metaTextPremium: { color: '#a1a1aa', fontSize: 13, fontWeight: '600' },
+  actionArrow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  actionArrowText: { color: '#10b981', fontSize: 11, fontWeight: '700', marginRight: 4 },
 
   modalActionGrid: { flexDirection: 'row', gap: 12, marginTop: 12, marginBottom: 16 },
   mBtnCall: { flex: 1, backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 48, borderRadius: 12, gap: 8 },
