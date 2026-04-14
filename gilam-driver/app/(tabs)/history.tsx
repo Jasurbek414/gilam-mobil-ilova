@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform, Alert } from 'react-native';
 import { useAuth } from '../_layout';
-import { getDriverCompletedOrders, getFacilityCompletedOrders, Order } from '../../lib/api';
+import { getDriverCompletedOrders, getFacilityCompletedOrders, updateOrderStatus, Order } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HistoryScreen() {
@@ -10,6 +10,30 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleRewash = () => {
+    if (!selectedOrder) return;
+    Alert.alert(
+      "Tasdiqlash",
+      "Rostdan ham ushbu yuvilgan va yakunlangan gilamni qaytadan YUVISH JARAYONIGA tushirmoqchimisiz? Agar 'Ha' desangiz chala ish sifatida Aktiv Buyurtmalar qutisiga qaytadi.",
+      [
+         { text: "Bekor qilish", style: "cancel" },
+         { text: "Ha, Qayta Yuvish!", style: "destructive", onPress: async () => {
+             setActionLoading(true);
+             try {
+                await updateOrderStatus(selectedOrder.id, 'WASHING');
+                setSelectedOrder(null);
+                loadHistory();
+             } catch(err: any) {
+                Alert.alert("Xatolik", err.message || "Status o'zgarmadi");
+             } finally {
+                setActionLoading(false);
+             }
+         }}
+      ]
+    );
+  };
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
@@ -115,14 +139,25 @@ export default function HistoryScreen() {
                           <View key={idx} style={styles.itemBox}>
                              <View style={styles.itemHeader}>
                                 <Text style={styles.itemName}>{it.service?.name || 'Xizmat'}</Text>
-                                <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                                {user?.appRole !== 'FACILITY' && (
+                                  <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                                )}
                              </View>
-                             <Text style={styles.itemMetric}>{it.quantity} qism {(it.width && it.length) ? `| D: ${it.width}x${it.length}` : ''}</Text>
+                             <Text style={styles.itemMetric}>{it.quantity} {it.service?.measurementUnit || 'kv.m'} {(it.width && it.length) ? `| D: ${it.width}x${it.length}` : ''}</Text>
                           </View>
                        ))
                     )}
-                 </ScrollView>
-              </View>
+
+                     {user?.appRole === 'FACILITY' && (
+                        <TouchableOpacity style={styles.rewashBtn} activeOpacity={0.8} onPress={handleRewash} disabled={actionLoading}>
+                           <Ionicons name="water" size={20} color="#09090b" style={{marginRight: 8}}/>
+                           <Text style={styles.rewashText}>{actionLoading ? "Yuborilmoqda..." : "Qayta Yuvishga O'tkazish"}</Text>
+                        </TouchableOpacity>
+                     )}
+                     
+                     <View style={{height: 20}} />
+                  </ScrollView>
+               </View>
            </View>
          )}
       </Modal>
@@ -166,4 +201,6 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 15, color: '#ffffff', fontWeight: '700', flex: 1 },
   itemPrice: { fontSize: 15, color: '#10b981', fontWeight: '800', marginLeft: 8 },
   itemMetric: { fontSize: 13, color: '#a1a1aa' },
+  rewashBtn: { marginTop: 24, paddingVertical: 16, backgroundColor: '#facc15', borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  rewashText: { color: '#09090b', fontSize: 16, fontWeight: '800' }
 });
