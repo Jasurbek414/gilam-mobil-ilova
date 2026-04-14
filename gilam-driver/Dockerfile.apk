@@ -1,0 +1,10 @@
+﻿FROM reactnativecommunity/react-native-android:latest
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install --legacy-peer-deps
+COPY . .
+RUN npx expo prebuild --clean
+RUN echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
+ENV NODE_OPTIONS="--max_old_space_size=8192"
+RUN cd android && ./gradlew assembleRelease --no-daemon
