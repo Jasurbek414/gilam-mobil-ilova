@@ -21,7 +21,7 @@ export default function OrdersScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, [user]);
 
-  useEffect(() => { loadOrders(); const interval = setInterval(loadOrders, 30000); return () => clearInterval(interval); }, [loadOrders]);
+  useEffect(() => { loadOrders(); const interval = setInterval(loadOrders, 3000); return () => clearInterval(interval); }, [loadOrders]);
 
   const onRefresh = () => { setRefreshing(true); loadOrders(); };
 
