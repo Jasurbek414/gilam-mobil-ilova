@@ -161,6 +161,7 @@ export async function logout() {
 
 export async function createExpense(data: {
   companyId: string;
+  userId?: string;
   title: string;
   amount: number;
   category: string;
@@ -170,6 +171,16 @@ export async function createExpense(data: {
   return request<any>('/expenses', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function getDriverExpenses(userId: string): Promise<any[]> {
+  return request<any[]>(`/expenses/user/${userId}`);
+}
+
+export async function deleteExpense(expenseId: string): Promise<void> {
+  return request<void>(`/expenses/${expenseId}`, {
+    method: 'DELETE',
   });
 }
 

@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, ActivityIndicator, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { logout, createExpense } from '../../lib/api';
+import { logout, createExpense, getDriverExpenses, deleteExpense } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
@@ -12,6 +12,25 @@ export default function ProfileScreen() {
   const [showExpense, setShowExpense] = useState(false);
   const [expenseData, setExpenseData] = useState({ title: '', amount: '', comment: '' });
   const [savingExpense, setSavingExpense] = useState(false);
+  const [myExpenses, setMyExpenses] = useState<any[]>([]);
+  const [loadingExp, setLoadingExp] = useState(true);
+
+  const loadMyExpenses = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLoadingExp(true);
+      const data = await getDriverExpenses(user.id);
+      setMyExpenses(data || []);
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setLoadingExp(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadMyExpenses();
+  }, [loadMyExpenses]);
 
   const handleLogout = async () => { await logout(); setUser(null); };
 
@@ -25,6 +44,7 @@ export default function ProfileScreen() {
     try {
       await createExpense({
         companyId: user!.companyId,
+        userId: user!.id,
         title: expenseData.title,
         amount: Number(expenseData.amount),
         category: 'Logistika', // Always logistics for drivers
@@ -34,12 +54,28 @@ export default function ProfileScreen() {
       setShowExpense(false);
       setExpenseData({ title: '', amount: '', comment: '' });
       Alert.alert('Bajarildi', 'Kiritilgan mablag xisobotga yozildi.');
+      loadMyExpenses();
     } catch(err: any) {
       Alert.alert('Xatolik', err.message || 'Saqlab bo\'lmadi');
     } finally {
       setSavingExpense(false);
     }
   };
+
+  const handleDeleteExpense = (id: string, title: string) => {
+    Alert.alert('O\'chirish', `"${title}" xarajatini o'chirib tashlaysizmi?`, [
+      { text: 'Bekor', style: 'cancel' },
+      { text: 'O\'chirish', style: 'destructive', onPress: async () => {
+          try {
+            await deleteExpense(id);
+            loadMyExpenses();
+            Alert.alert('O\'chirildi', '', [{text: 'OK'}]);
+          } catch(e:any) {
+             Alert.alert('Xatolik', e.message);
+          }
+      }}
+    ]);
+  }
 
   if (!user) return null;
 
@@ -96,6 +132,33 @@ export default function ProfileScreen() {
              <Text style={styles.actionCardText}>Hisobdan{'\n'}chiqish</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.myExpHeader}>
+          <Text style={styles.myExpTitle}>Mening xarajatlarim</Text>
+          {loadingExp && <ActivityIndicator size="small" color="#10b981" />}
+        </View>
+
+        {myExpenses.length === 0 && !loadingExp ? (
+          <View style={styles.emptyExp}>
+            <Ionicons name="receipt-outline" size={32} color="#27272a" />
+            <Text style={styles.emptyExpText}>Hali xarajat kiritmagansiz</Text>
+          </View>
+        ) : (
+          myExpenses.map((exp) => (
+            <View key={exp.id} style={styles.expCard}>
+               <View style={{flex: 1}}>
+                  <Text style={styles.expT}>{exp.title}</Text>
+                  <Text style={styles.expD}>{new Date(exp.createdAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</Text>
+               </View>
+               <View style={{alignItems: 'flex-end', justifyContent: 'center'}}>
+                  <Text style={styles.expSum}>{exp.amount.toLocaleString()} so'm</Text>
+               </View>
+               <TouchableOpacity style={styles.expDelBtn} onPress={() => handleDeleteExpense(exp.id, exp.title)}>
+                  <Ionicons name="trash" size={20} color="#ef4444" />
+               </TouchableOpacity>
+            </View>
+          ))
+        )}
 
       </ScrollView>
 
@@ -223,5 +286,15 @@ const styles = StyleSheet.create({
   inputThin: { backgroundColor: '#27272a', borderRadius: 16, height: 56, paddingHorizontal: 16, color: '#fff', fontSize: 15, fontWeight: '600' },
   
   fatGreenBtn: { flex: 1, height: 56, backgroundColor: '#10b981', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
-  fatGreenText: { color: '#fff', fontSize: 15, fontWeight: '800' }
+  fatGreenText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  myExpHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, marginTop: 16 },
+  myExpTitle: { color: '#ffffff', fontSize: 20, fontWeight: '800' },
+  emptyExp: { backgroundColor: '#18181b', borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#27272a' },
+  emptyExpText: { color: '#71717a', fontSize: 14, fontWeight: '600', marginTop: 12 },
+  expCard: { backgroundColor: '#18181b', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#27272a' },
+  expT: { color: '#ffffff', fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  expD: { color: '#71717a', fontSize: 12, fontWeight: '600' },
+  expSum: { color: '#10b981', fontSize: 15, fontWeight: '800', paddingHorizontal: 16 },
+  expDelBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.1)', justifyContent: 'center', alignItems: 'center' }
 });
