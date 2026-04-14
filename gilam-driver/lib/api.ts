@@ -45,6 +45,7 @@ export type OrderStatus =
   | 'AT_FACILITY'
   | 'WASHING'
   | 'DRYING'
+  | 'FINISHED'
   | 'READY_FOR_DELIVERY'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
@@ -280,6 +281,14 @@ export const STATUS_CONFIG: Record<string, {
     emoji: '☀️',
     color: '#0284c7',
     bg: '#e0f2fe',
+    next: 'FINISHED',
+    nextLabel: '✨ Pardozga o\'tkazish',
+  },
+  FINISHED: {
+    label: 'Pardozda',
+    emoji: '✨',
+    color: '#9333ea',
+    bg: '#f3e8ff',
     next: 'READY_FOR_DELIVERY',
     nextLabel: '📦 Qadoqlab topshirish',
   },

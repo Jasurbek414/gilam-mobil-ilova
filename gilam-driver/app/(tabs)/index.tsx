@@ -79,6 +79,7 @@ export default function OrdersScreen() {
      { key: 'AT_FACILITY', label: 'Sexga tushgan', icon: 'business' },
      { key: 'WASHING', label: 'Yuvilmoqda', icon: 'water' },
      { key: 'DRYING', label: 'Quritilmoqda', icon: 'sunny' },
+     { key: 'FINISHED', label: 'Pardozda', icon: 'sparkles' },
   ];
 
   const DRIVER_FILTERS = [
