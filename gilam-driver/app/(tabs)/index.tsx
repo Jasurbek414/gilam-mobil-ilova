@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView, TextInput } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { getMyOrders, getFacilityOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
+import { getMyOrders, getFacilityOrders, updateOrderStatus, Order, STATUS_CONFIG, getFacilityStages, FacilityStage, createFacilityStage } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
@@ -17,6 +17,10 @@ export default function OrdersScreen() {
   const [deadlineOrder, setDeadlineOrder] = useState<{ id: string, nextStatus: string } | null>(null);
   const [completeOrderModal, setCompleteOrderModal] = useState<Order | null>(null);
   const [receivedAmount, setReceivedAmount] = useState<string>('');
+  const [facilityStages, setFacilityStages] = useState<FacilityStage[]>([]);
+  const [createStageModal, setCreateStageModal] = useState<boolean>(false);
+  const [newStageName, setNewStageName] = useState<string>('');
+  const [nextStageModal, setNextStageModal] = useState<Order | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -24,6 +28,8 @@ export default function OrdersScreen() {
       let data = [];
       if (user.appRole === 'FACILITY') {
         data = await getFacilityOrders(user.companyId);
+        const stagesData = await getFacilityStages(user.companyId);
+        setFacilityStages(stagesData || []);
       } else {
         data = await getMyOrders(user.id);
       }
@@ -74,12 +80,15 @@ export default function OrdersScreen() {
     return <View style={styles.center}><ActivityIndicator size="large" color="#10b981" /></View>;
   }
 
-  const FACILITY_FILTERS = [
+  const DYNAMIC_FILTERS = facilityStages.map(s => ({ key: s.id, label: s.name, icon: s.icon }));
+
+  const FACILITY_FILTERS: any[] = [
      { key: 'ALL', label: 'Barchasi', icon: 'list' },
      { key: 'AT_FACILITY', label: 'Sexga tushgan', icon: 'business' },
      { key: 'WASHING', label: 'Yuvilmoqda', icon: 'water' },
      { key: 'DRYING', label: 'Quritilmoqda', icon: 'sunny' },
      { key: 'FINISHED', label: 'Pardozda', icon: 'sparkles' },
+     ...DYNAMIC_FILTERS
   ];
 
   const DRIVER_FILTERS = [
@@ -90,8 +99,14 @@ export default function OrdersScreen() {
      { key: 'OUT_FOR_DELIVERY', label: 'Yo\'lda', icon: 'navigate' },
   ];
 
-  const currentFilters = user?.appRole === 'FACILITY' ? FACILITY_FILTERS : DRIVER_FILTERS;
-  const filteredOrders = filterStatus === 'ALL' ? orders : orders.filter(o => o.status === filterStatus);
+  const currentFilters: any[] = user?.appRole === 'FACILITY' ? FACILITY_FILTERS : DRIVER_FILTERS;
+  const filteredOrders = filterStatus === 'ALL' 
+     ? orders 
+     : orders.filter(o => 
+         facilityStages.find(s => s.id === filterStatus) 
+           ? o.facilityStageId === filterStatus 
+           : o.status === filterStatus
+       );
 
   return (
     <View style={styles.container}>
@@ -119,6 +134,22 @@ export default function OrdersScreen() {
                   </TouchableOpacity>
                )
             })}
+            
+            {user?.appRole === 'FACILITY' && (
+               <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={() => setCreateStageModal(true)}
+                  style={{
+                     flexDirection: 'row', alignItems: 'center', gap: 6,
+                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+                     borderWidth: 1, borderColor: '#10b981', borderStyle: 'dashed'
+                  }}
+               >
+                  <Ionicons name="add" size={18} color="#10b981" />
+                  <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700' }}>Bo'lim qo'shish</Text>
+               </TouchableOpacity>
+            )}
          </ScrollView>
       </View>
 
@@ -444,18 +475,31 @@ export default function OrdersScreen() {
 
                      <View style={{ height: 24 }} />
                      
-                     {STATUS_CONFIG[selectedOrder.status]?.next && (
+                     {user?.appRole === 'FACILITY' ? (
                         <TouchableOpacity 
                           style={styles.mainBtn} 
                           activeOpacity={0.8} 
                           onPress={() => {
-                             handleUpdateStatus(selectedOrder.id, STATUS_CONFIG[selectedOrder.status].next!);
+                             setNextStageModal(selectedOrder);
                              setSelectedOrder(null);
                           }}
-                          disabled={updatingId === selectedOrder.id}
                         >
-                          {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>{STATUS_CONFIG[selectedOrder.status].nextLabel}</Text>}
+                          <Text style={styles.mainBtnText}>Keyingi bo'limga o'tkazish ➡️</Text>
                         </TouchableOpacity>
+                     ) : (
+                        STATUS_CONFIG[selectedOrder.status]?.next && (
+                           <TouchableOpacity 
+                             style={styles.mainBtn} 
+                             activeOpacity={0.8} 
+                             onPress={() => {
+                                handleUpdateStatus(selectedOrder.id, STATUS_CONFIG[selectedOrder.status].next!);
+                                setSelectedOrder(null);
+                             }}
+                             disabled={updatingId === selectedOrder.id}
+                           >
+                             {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>{STATUS_CONFIG[selectedOrder.status].nextLabel}</Text>}
+                           </TouchableOpacity>
+                        )
                      )}
                      <View style={{ height: 40 }} />
                   </ScrollView>
@@ -474,6 +518,96 @@ export default function OrdersScreen() {
            <Ionicons name="chatbubbles" size={28} color="#09090b" />
         </TouchableOpacity>
       )}
+
+      {/* CREATE STAGE MODAL */}
+      <Modal visible={createStageModal} animationType="fade" transparent>
+         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+            <View style={{ backgroundColor: '#18181b', borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: '#27272a' }}>
+               <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 16 }}>Yangi bo'lim qo'shish</Text>
+               <TextInput 
+                  style={{ backgroundColor: '#09090b', color: '#fff', borderRadius: 12, padding: 16, fontSize: 16, borderWidth: 1, borderColor: '#27272a', marginBottom: 16 }}
+                  placeholder="Masalan: Pardozlash, Qadoqlash..."
+                  placeholderTextColor="#71717a"
+                  value={newStageName}
+                  onChangeText={setNewStageName}
+               />
+               <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#27272a', alignItems: 'center' }} onPress={() => { setCreateStageModal(false); setNewStageName(''); }}>
+                     <Text style={{ color: '#fff', fontWeight: '700' }}>Bekor qilish</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#10b981', alignItems: 'center' }}
+                    onPress={async () => {
+                       if (!newStageName.trim() || !user?.companyId) return;
+                       try {
+                          await createFacilityStage(user.companyId, newStageName, 'folder');
+                          setCreateStageModal(false);
+                          setNewStageName('');
+                          loadOrders();
+                       } catch (e: any) { Alert.alert("Xato", e.message); }
+                    }}
+                  >
+                     <Text style={{ color: '#064e3b', fontWeight: '800' }}>Qo'shish</Text>
+                  </TouchableOpacity>
+               </View>
+            </View>
+         </View>
+      </Modal>
+
+      {/* NEXT STAGE SELECT MODAL */}
+      <Modal visible={!!nextStageModal} animationType="slide" transparent>
+         <View style={styles.modalOverlay}>
+            <View style={{...styles.modalContent, height: '60%'}}>
+               <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Qaysi bosqichga o'tkazamiz?</Text>
+                  <TouchableOpacity onPress={() => setNextStageModal(null)} style={styles.closeBtn}>
+                     <Ionicons name="close" size={20} color="#ffffff" />
+                  </TouchableOpacity>
+               </View>
+               <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                  {facilityStages.map(stage => (
+                     <TouchableOpacity 
+                        key={stage.id} 
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#09090b', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#27272a' }}
+                        onPress={async () => {
+                           if (!nextStageModal) return;
+                           try {
+                              setUpdatingId(nextStageModal.id);
+                              setNextStageModal(null);
+                              await updateOrderStatus(nextStageModal.id, nextStageModal.status, undefined, undefined, stage.id);
+                              await loadOrders();
+                           } catch (e: any) { Alert.alert("Xato", e.message); }
+                           finally { setUpdatingId(null); }
+                        }}
+                     >
+                        <Ionicons name={stage.icon as any || 'folder'} size={24} color="#10b981" style={{ marginRight: 12 }} />
+                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{stage.name}</Text>
+                     </TouchableOpacity>
+                  ))}
+                  
+                  <View style={{ height: 1, backgroundColor: '#27272a', marginVertical: 16 }} />
+                  
+                  <TouchableOpacity 
+                     style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#10b981' }}
+                     onPress={async () => {
+                        if (!nextStageModal) return;
+                        try {
+                           setUpdatingId(nextStageModal.id);
+                           setNextStageModal(null);
+                           await updateOrderStatus(nextStageModal.id, 'READY_FOR_DELIVERY');
+                           await loadOrders();
+                        } catch (e: any) { Alert.alert("Xato", e.message); }
+                        finally { setUpdatingId(null); }
+                     }}
+                  >
+                     <Ionicons name="checkmark-done" size={24} color="#10b981" style={{ marginRight: 12 }} />
+                     <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '800' }}>Tugatish (Yetkazishga tayyor)</Text>
+                  </TouchableOpacity>
+               </ScrollView>
+            </View>
+         </View>
+      </Modal>
+
     </View>
   );
 }
