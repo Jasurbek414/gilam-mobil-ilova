@@ -236,19 +236,24 @@ export default function OrdersScreen() {
          )}
       </Modal>
 
-      {/* Floating Action Button for Chat */}
-      <TouchableOpacity 
-         style={styles.fabChat}
-         onPress={() => router.push('/chat')}
-      >
-         <Ionicons name="chatbubbles" size={28} color="#09090b" />
-      </TouchableOpacity>
+      {/* Floating Chat Button */}
+      {user?.appRole !== 'FACILITY' && (
+        <TouchableOpacity 
+           style={styles.chatFab}
+           activeOpacity={0.8}
+           onPress={() => router.push('/chat')}
+        >
+           <View style={styles.fabIconBg}>
+             <Ionicons name="chatbubbles" size={24} color="#09090b" />
+           </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fabChat: { position: 'absolute', right: 20, bottom: 90, width: 64, height: 64, borderRadius: 32, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center', shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
+  chatFab: { position: 'absolute', right: 20, bottom: 90, width: 64, height: 64, borderRadius: 32, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center', shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#09090b' },
   container: { flex: 1, backgroundColor: '#09090b' },
   list: { padding: 16, paddingBottom: 100 },

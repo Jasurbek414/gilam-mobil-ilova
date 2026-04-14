@@ -1,15 +1,18 @@
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, TouchableOpacity } from 'react-native';
+import { useAuth } from './../_layout';
 
 export default function TabLayout() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isFacility = user?.appRole === 'FACILITY';
 
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
-        headerRight: () => (
+        headerRight: () => isFacility ? null : (
           <TouchableOpacity onPress={() => router.push('/chat')} style={{ marginRight: 20 }}>
              <Ionicons name="chatbubbles" size={24} color="#10b981" />
           </TouchableOpacity>
@@ -41,18 +44,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          headerTitle: 'Aktiv Buyurtmalar',
+          headerTitle: isFacility ? 'Sexdagi Barcha Ishlar' : 'Aktiv Buyurtmalar',
           tabBarIcon: ({ size, focused }) => (
-            <Ionicons name={focused ? 'rocket' : 'rocket-outline'} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
+            <Ionicons name={focused ? (isFacility ? 'water' : 'rocket') : (isFacility ? 'water-outline' : 'rocket-outline')} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
           ),
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          headerTitle: 'Tarix Arxivi',
+          headerTitle: isFacility ? "Sex Tarixi Bajarilgan" : 'Tarix Arxivi',
           tabBarIcon: ({ size, focused }) => (
-            <Ionicons name={focused ? 'time' : 'time-outline'} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
+            <Ionicons name={focused ? 'file-tray-full' : 'file-tray-full-outline'} size={size + 4} color={focused ? '#10b981' : '#52525b'} />
           ),
         }}
       />
