@@ -171,10 +171,10 @@ export async function getOrderDetails(orderId: string): Promise<Order> {
   return request<Order>(`/orders/${orderId}`);
 }
 
-export async function updateOrderStatus(orderId: string, status: string): Promise<Order> {
+export async function updateOrderStatus(orderId: string, status: string, notes?: string): Promise<Order> {
   return request<Order>(`/orders/${orderId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(notes ? { status, notes } : { status }),
   });
 }
 

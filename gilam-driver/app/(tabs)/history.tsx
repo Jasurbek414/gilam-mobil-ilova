@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform, Alert, TextInput } from 'react-native';
 import { useAuth } from '../_layout';
 import { getDriverCompletedOrders, getFacilityCompletedOrders, updateOrderStatus, Order } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,27 +12,31 @@ export default function HistoryScreen() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const handleRewash = () => {
+  const [showRewashInput, setShowRewashInput] = useState(false);
+  const [rewashReason, setRewashReason] = useState("");
+
+  const handleRewashSubmit = async () => {
     if (!selectedOrder) return;
-    Alert.alert(
-      "Tasdiqlash",
-      "Rostdan ham ushbu yuvilgan va yakunlangan gilamni qaytadan YUVISH JARAYONIGA tushirmoqchimisiz? Agar 'Ha' desangiz chala ish sifatida Aktiv Buyurtmalar qutisiga qaytadi.",
-      [
-         { text: "Bekor qilish", style: "cancel" },
-         { text: "Ha, Qayta Yuvish!", style: "destructive", onPress: async () => {
-             setActionLoading(true);
-             try {
-                await updateOrderStatus(selectedOrder.id, 'WASHING');
-                setSelectedOrder(null);
-                loadHistory();
-             } catch(err: any) {
-                Alert.alert("Xatolik", err.message || "Status o'zgarmadi");
-             } finally {
-                setActionLoading(false);
-             }
-         }}
-      ]
-    );
+    if (!rewashReason.trim()) {
+      Alert.alert("Diqqat", "Iltimos, qayta yuvish sababini qisqacha yozib qoldiring!");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const existingNotes = selectedOrder.notes ? selectedOrder.notes + '\n' : '';
+      const newNote = `${existingNotes}⚠️ QAYTA YUVISHGA QAYTARILDI: ${rewashReason.trim()}`;
+      
+      await updateOrderStatus(selectedOrder.id, 'WASHING', newNote);
+      setSelectedOrder(null);
+      setShowRewashInput(false);
+      setRewashReason("");
+      loadHistory();
+    } catch(err: any) {
+      Alert.alert("Xatolik", err.message || "Status o'zgarmadi");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const loadHistory = useCallback(async () => {
@@ -149,10 +153,34 @@ export default function HistoryScreen() {
                     )}
 
                      {user?.appRole === 'FACILITY' && (
-                        <TouchableOpacity style={styles.rewashBtn} activeOpacity={0.8} onPress={handleRewash} disabled={actionLoading}>
-                           <Ionicons name="water" size={20} color="#09090b" style={{marginRight: 8}}/>
-                           <Text style={styles.rewashText}>{actionLoading ? "Yuborilmoqda..." : "Qayta Yuvishga O'tkazish"}</Text>
-                        </TouchableOpacity>
+                        <View style={{ marginTop: 12 }}>
+                           {showRewashInput ? (
+                              <View style={styles.rewashInputContainer}>
+                                 <Text style={styles.rewashInputLabel}>Nimaga qaytarilyapti (Sabab)?</Text>
+                                 <TextInput 
+                                    style={styles.rewashInput}
+                                    placeholder="Masalan: dog' qolib ketibdi..."
+                                    placeholderTextColor="#71717a"
+                                    value={rewashReason}
+                                    onChangeText={setRewashReason}
+                                    multiline
+                                 />
+                                 <View style={styles.rewashActionRow}>
+                                    <TouchableOpacity style={styles.rewashCancelBtn} onPress={() => setShowRewashInput(false)}>
+                                       <Text style={styles.rewashCancelText}>Bekor qilish</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.rewashSubmitBtn} onPress={handleRewashSubmit} disabled={actionLoading}>
+                                       <Text style={styles.rewashSubmitText}>{actionLoading ? "Kuting..." : "Tasdiqlash"}</Text>
+                                    </TouchableOpacity>
+                                 </View>
+                              </View>
+                           ) : (
+                              <TouchableOpacity style={styles.rewashBtn} activeOpacity={0.8} onPress={() => { setShowRewashInput(true); setRewashReason(""); }} disabled={actionLoading}>
+                                 <Ionicons name="water" size={20} color="#09090b" style={{marginRight: 8}}/>
+                                 <Text style={styles.rewashText}>Qayta Yuvishga O'tkazish</Text>
+                              </TouchableOpacity>
+                           )}
+                        </View>
                      )}
                      
                      <View style={{height: 20}} />
@@ -201,6 +229,14 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 15, color: '#ffffff', fontWeight: '700', flex: 1 },
   itemPrice: { fontSize: 15, color: '#10b981', fontWeight: '800', marginLeft: 8 },
   itemMetric: { fontSize: 13, color: '#a1a1aa' },
-  rewashBtn: { marginTop: 24, paddingVertical: 16, backgroundColor: '#facc15', borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  rewashText: { color: '#09090b', fontSize: 16, fontWeight: '800' }
+  rewashBtn: { marginTop: 12, paddingVertical: 16, backgroundColor: '#facc15', borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  rewashText: { color: '#09090b', fontSize: 16, fontWeight: '800' },
+  rewashInputContainer: { backgroundColor: '#18181b', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#facc15', marginTop: 12 },
+  rewashInputLabel: { color: '#facc15', fontSize: 15, fontWeight: '700', marginBottom: 12 },
+  rewashInput: { backgroundColor: '#09090b', color: '#ffffff', minHeight: 80, borderRadius: 12, padding: 12, textAlignVertical: 'top', fontSize: 15, borderWidth: 1, borderColor: '#27272a', marginBottom: 16 },
+  rewashActionRow: { flexDirection: 'row', gap: 12 },
+  rewashCancelBtn: { flex: 1, paddingVertical: 14, backgroundColor: '#27272a', borderRadius: 12, alignItems: 'center' },
+  rewashCancelText: { color: '#e4e4e7', fontSize: 15, fontWeight: '700' },
+  rewashSubmitBtn: { flex: 2, paddingVertical: 14, backgroundColor: '#facc15', borderRadius: 12, alignItems: 'center' },
+  rewashSubmitText: { color: '#09090b', fontSize: 15, fontWeight: '800' }
 });
