@@ -256,6 +256,17 @@ export async function createFacilityStage(companyId: string, name: string, icon:
   });
 }
 
+export async function deleteFacilityStage(stageId: string): Promise<any> {
+  return request<any>(`/facility-stages/${stageId}`, { method: 'DELETE' });
+}
+
+export async function reorderFacilityStages(stages: { id: string, orderIndex: number }[]): Promise<any> {
+  return request<any>(`/facility-stages/reorder`, {
+    method: 'PUT',
+    body: JSON.stringify({ stages }),
+  });
+}
+
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 
 export const STATUS_CONFIG: Record<string, {

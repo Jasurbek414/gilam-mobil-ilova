@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView, TextInput } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { getMyOrders, getFacilityOrders, updateOrderStatus, Order, STATUS_CONFIG, getFacilityStages, FacilityStage, createFacilityStage } from '../../lib/api';
+import { getMyOrders, getFacilityOrders, updateOrderStatus, Order, STATUS_CONFIG, getFacilityStages, FacilityStage, createFacilityStage, deleteFacilityStage, reorderFacilityStages } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
@@ -20,7 +20,8 @@ export default function OrdersScreen() {
   const [facilityStages, setFacilityStages] = useState<FacilityStage[]>([]);
   const [createStageModal, setCreateStageModal] = useState<boolean>(false);
   const [newStageName, setNewStageName] = useState<string>('');
-  const [nextStageModal, setNextStageModal] = useState<Order | null>(null);
+  const [reorderModal, setReorderModal] = useState<boolean>(false);
+  const [temporaryStages, setTemporaryStages] = useState<FacilityStage[]>([]);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -120,6 +121,21 @@ export default function OrdersScreen() {
                      key={f.key}
                      activeOpacity={0.7}
                      onPress={() => setFilterStatus(f.key)}
+                     onLongPress={() => {
+                        if (facilityStages.find(s => s.id === f.key)) {
+                           Alert.alert('Bo\'limni Boshqarish', f.label, [
+                               { text: 'O\'chirish', style: 'destructive', onPress: async () => {
+                                   try { await deleteFacilityStage(f.key); await loadOrders(); }
+                                   catch(e: any) { Alert.alert('Xato', e.message); }
+                               }},
+                               { text: 'Tartibini ozgartirish', onPress: () => {
+                                   setTemporaryStages([...facilityStages]);
+                                   setReorderModal(true);
+                               }},
+                               { text: 'Bekor qilish', style: 'cancel' }
+                           ]);
+                        }
+                     }}
                      style={{
                         flexDirection: 'row', alignItems: 'center', gap: 6,
                         backgroundColor: isActive ? '#10b981' : 'rgba(255,255,255,0.05)',
@@ -479,12 +495,37 @@ export default function OrdersScreen() {
                         <TouchableOpacity 
                           style={styles.mainBtn} 
                           activeOpacity={0.8} 
-                          onPress={() => {
-                             setNextStageModal(selectedOrder);
-                             setSelectedOrder(null);
+                          onPress={async () => {
+                             try {
+                                setUpdatingId(selectedOrder.id);
+                                const PIPELINE = [
+                                    'AT_FACILITY',
+                                    'WASHING',
+                                    'DRYING',
+                                    'FINISHED',
+                                    ...facilityStages.map(s => s.id)
+                                ];
+                                let currentKey = selectedOrder.facilityStageId || selectedOrder.status;
+                                let currentIndex = PIPELINE.indexOf(currentKey);
+
+                                let nextPayload = { status: 'READY_FOR_DELIVERY', facilityStageId: null as any };
+                                if (currentIndex !== -1 && currentIndex < PIPELINE.length - 1) {
+                                    let nextKey = PIPELINE[currentIndex + 1];
+                                    if (facilityStages.find(s => s.id === nextKey)) {
+                                        nextPayload = { status: selectedOrder.status, facilityStageId: nextKey };
+                                    } else {
+                                        nextPayload = { status: nextKey, facilityStageId: null as any };
+                                    }
+                                }
+                                await updateOrderStatus(selectedOrder.id, nextPayload.status, undefined, undefined, nextPayload.facilityStageId);
+                                await loadOrders();
+                                setSelectedOrder(null);
+                             } catch(e: any) { Alert.alert('Xato', e.message); }
+                             finally { setUpdatingId(null); }
                           }}
+                          disabled={updatingId === selectedOrder.id}
                         >
-                          <Text style={styles.mainBtnText}>Keyingi bo'limga o'tkazish ➡️</Text>
+                          {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>Keyingi bo'limga o'tkazish ➡️</Text>}
                         </TouchableOpacity>
                      ) : (
                         STATUS_CONFIG[selectedOrder.status]?.next && (
@@ -554,56 +595,60 @@ export default function OrdersScreen() {
          </View>
       </Modal>
 
-      {/* NEXT STAGE SELECT MODAL */}
-      <Modal visible={!!nextStageModal} animationType="slide" transparent>
-         <View style={styles.modalOverlay}>
-            <View style={{...styles.modalContent, height: '60%'}}>
-               <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Qaysi bosqichga o'tkazamiz?</Text>
-                  <TouchableOpacity onPress={() => setNextStageModal(null)} style={styles.closeBtn}>
-                     <Ionicons name="close" size={20} color="#ffffff" />
+      {/* REORDER STAGES MODAL */}
+      <Modal visible={reorderModal} animationType="fade" transparent>
+         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', padding: 24, justifyContent: 'center' }}>
+            <View style={{ backgroundColor: '#18181b', borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: '#27272a', maxHeight: '80%' }}>
+               <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 16 }}>Bo'limlar tartibini sozlash</Text>
+               <ScrollView style={{ marginBottom: 16 }}>
+                  {temporaryStages.map((stage, idx) => (
+                      <View key={stage.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#09090b', padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: '#27272a' }}>
+                         <Text style={{ color: '#fff', fontSize: 16, flex: 1, fontWeight: '700' }}>{stage.name}</Text>
+                         <View style={{ flexDirection: 'row', gap: 8 }}>
+                             <TouchableOpacity 
+                                disabled={idx === 0} 
+                                onPress={() => {
+                                   let arr = [...temporaryStages];
+                                   [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                                   setTemporaryStages(arr);
+                                }}
+                                style={{ width: 36, height: 36, backgroundColor: idx === 0 ? '#27272a' : '#10b981', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}
+                             >
+                                <Ionicons name="arrow-up" size={18} color="#fff" />
+                             </TouchableOpacity>
+                             <TouchableOpacity 
+                                disabled={idx === temporaryStages.length - 1} 
+                                onPress={() => {
+                                   let arr = [...temporaryStages];
+                                   [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
+                                   setTemporaryStages(arr);
+                                }}
+                                style={{ width: 36, height: 36, backgroundColor: idx === temporaryStages.length - 1 ? '#27272a' : '#10b981', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}
+                             >
+                                <Ionicons name="arrow-down" size={18} color="#fff" />
+                             </TouchableOpacity>
+                         </View>
+                      </View>
+                  ))}
+               </ScrollView>
+               <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#27272a', alignItems: 'center' }} onPress={() => setReorderModal(false)}>
+                     <Text style={{ color: '#fff', fontWeight: '700' }}>Bekor qilish</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#10b981', alignItems: 'center' }}
+                    onPress={async () => {
+                       try {
+                          const payload = temporaryStages.map((s, i) => ({ id: s.id, orderIndex: i }));
+                          await reorderFacilityStages(payload);
+                          setReorderModal(false);
+                          loadOrders();
+                       } catch (e: any) { Alert.alert("Xato", e.message); }
+                    }}
+                  >
+                     <Text style={{ color: '#064e3b', fontWeight: '800' }}>Saqlash</Text>
                   </TouchableOpacity>
                </View>
-               <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-                  {facilityStages.map(stage => (
-                     <TouchableOpacity 
-                        key={stage.id} 
-                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#09090b', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#27272a' }}
-                        onPress={async () => {
-                           if (!nextStageModal) return;
-                           try {
-                              setUpdatingId(nextStageModal.id);
-                              setNextStageModal(null);
-                              await updateOrderStatus(nextStageModal.id, nextStageModal.status, undefined, undefined, stage.id);
-                              await loadOrders();
-                           } catch (e: any) { Alert.alert("Xato", e.message); }
-                           finally { setUpdatingId(null); }
-                        }}
-                     >
-                        <Ionicons name={stage.icon as any || 'folder'} size={24} color="#10b981" style={{ marginRight: 12 }} />
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{stage.name}</Text>
-                     </TouchableOpacity>
-                  ))}
-                  
-                  <View style={{ height: 1, backgroundColor: '#27272a', marginVertical: 16 }} />
-                  
-                  <TouchableOpacity 
-                     style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#10b981' }}
-                     onPress={async () => {
-                        if (!nextStageModal) return;
-                        try {
-                           setUpdatingId(nextStageModal.id);
-                           setNextStageModal(null);
-                           await updateOrderStatus(nextStageModal.id, 'READY_FOR_DELIVERY');
-                           await loadOrders();
-                        } catch (e: any) { Alert.alert("Xato", e.message); }
-                        finally { setUpdatingId(null); }
-                     }}
-                  >
-                     <Ionicons name="checkmark-done" size={24} color="#10b981" style={{ marginRight: 12 }} />
-                     <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '800' }}>Tugatish (Yetkazishga tayyor)</Text>
-                  </TouchableOpacity>
-               </ScrollView>
             </View>
          </View>
       </Modal>
