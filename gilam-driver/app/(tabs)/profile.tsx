@@ -204,4 +204,19 @@ const styles = StyleSheet.create({
   mBtnOut: { flex: 1, height: 50, borderRadius: 12, backgroundColor: '#ef4444', justifyContent: 'center', alignItems: 'center' },
   mBtnCancelText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
   mBtnOutText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  
+  expenseBtn: { backgroundColor: 'rgba(16, 185, 129, 0.1)', height: 60, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#10b981', marginBottom: 16 },
+  expenseText: { color: '#10b981', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
+  expenseModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+  expenseModalScroll: { flexGrow: 1, justifyContent: 'flex-end' },
+  expenseModalCard: { backgroundColor: '#18181b', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, borderWidth: 1, borderColor: '#27272a', borderBottomWidth: 0 },
+  expenseHeader: { alignItems: 'center', marginBottom: 24 },
+  expenseIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#10b981' },
+  expenseTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 4 },
+  expenseSub: { fontSize: 13, color: '#a1a1aa', textAlign: 'center' },
+  inputBlock: { marginBottom: 20 },
+  label: { color: '#a1a1aa', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8, marginLeft: 4, letterSpacing: 1 },
+  input: { backgroundColor: '#09090b', borderWidth: 1, borderColor: '#27272a', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, color: '#fff', fontSize: 16, fontWeight: '600' },
+  mBtnConfirm: { paddingVertical: 14, backgroundColor: '#10b981', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  mBtnConfirmText: { color: '#fff', fontSize: 15, fontWeight: '800' }
 });
