@@ -569,16 +569,7 @@ export default function OrdersScreen() {
          )}
       </Modal>
 
-      {/* Floating Chat Button */}
-      {user?.appRole !== 'FACILITY' && (
-        <TouchableOpacity 
-           style={styles.chatFab}
-           activeOpacity={0.8}
-           onPress={() => router.push('/chat')}
-        >
-           <Ionicons name="chatbubbles" size={28} color="#09090b" />
-        </TouchableOpacity>
-      )}
+
 
       {/* CREATE STAGE MODAL */}
       <Modal visible={createStageModal} animationType="fade" transparent>
