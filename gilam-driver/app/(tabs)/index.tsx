@@ -20,8 +20,9 @@ export default function OrdersScreen() {
   const [facilityStages, setFacilityStages] = useState<FacilityStage[]>([]);
   const [createStageModal, setCreateStageModal] = useState<boolean>(false);
   const [newStageName, setNewStageName] = useState<string>('');
-  const [reorderModal, setReorderModal] = useState<boolean>(false);
-  const [temporaryStages, setTemporaryStages] = useState<FacilityStage[]>([]);
+  const [nextStageModal, setNextStageModal] = useState<Order | null>(null);
+  const [reorderStageModal, setReorderStageModal] = useState<boolean>(false);
+  const [localFacilityStages, setLocalFacilityStages] = useState<FacilityStage[]>([]);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -77,6 +78,34 @@ export default function OrdersScreen() {
     }
   };
 
+  const handleAutoNextStage = async (orderId: string, currentStatus: string, currentFacilityStageId?: string | null) => {
+      const STAGES = [
+         { id: 'AT_FACILITY', isDynamic: false },
+         { id: 'WASHING', isDynamic: false },
+         { id: 'DRYING', isDynamic: false },
+         { id: 'FINISHED', isDynamic: false },
+         ...facilityStages.map(s => ({ id: s.id, isDynamic: true })),
+         { id: 'READY_FOR_DELIVERY', isDynamic: false }
+      ];
+
+      let currentIndex = currentFacilityStageId ? STAGES.findIndex(s => s.id === currentFacilityStageId) : STAGES.findIndex(s => s.id === currentStatus);
+      if (currentIndex === -1) currentIndex = 0;
+      
+      const nextStage = STAGES[currentIndex + 1];
+      if (!nextStage) return;
+
+      try {
+         setUpdatingId(orderId);
+         if (nextStage.isDynamic) {
+             await updateOrderStatus(orderId, currentStatus, undefined, undefined, nextStage.id);
+         } else {
+             await updateOrderStatus(orderId, nextStage.id, undefined, undefined, ""); 
+         }
+         await loadOrders();
+      } catch (e: any) { Alert.alert("Xato", e.message); } 
+      finally { setUpdatingId(null); }
+  };
+
   if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color="#10b981" /></View>;
   }
@@ -122,19 +151,16 @@ export default function OrdersScreen() {
                      activeOpacity={0.7}
                      onPress={() => setFilterStatus(f.key)}
                      onLongPress={() => {
-                        if (facilityStages.find(s => s.id === f.key)) {
-                           Alert.alert('Bo\'limni Boshqarish', f.label, [
-                               { text: 'O\'chirish', style: 'destructive', onPress: async () => {
-                                   try { await deleteFacilityStage(f.key); await loadOrders(); }
-                                   catch(e: any) { Alert.alert('Xato', e.message); }
-                               }},
-                               { text: 'Tartibini ozgartirish', onPress: () => {
-                                   setTemporaryStages([...facilityStages]);
-                                   setReorderModal(true);
-                               }},
-                               { text: 'Bekor qilish', style: 'cancel' }
-                           ]);
-                        }
+                        if (user?.appRole !== 'FACILITY' || f.key === 'ALL' || ['AT_FACILITY', 'WASHING', 'DRYING', 'FINISHED'].includes(f.key)) return;
+                        Alert.alert("Bo'limni o'chirish", `"${f.label}" bo'limini o'chirmoqchimisiz?`, [
+                           {text: 'Bekor qilish', style: 'cancel'},
+                           {text: "O'chirish", style: 'destructive', onPress: async () => {
+                               try {
+                                  await deleteFacilityStage(f.key);
+                                  loadOrders();
+                               } catch(e:any) { Alert.alert('Xato', e.message) }
+                           }}
+                        ])
                      }}
                      style={{
                         flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -152,19 +178,37 @@ export default function OrdersScreen() {
             })}
             
             {user?.appRole === 'FACILITY' && (
-               <TouchableOpacity 
-                  activeOpacity={0.7}
-                  onPress={() => setCreateStageModal(true)}
-                  style={{
-                     flexDirection: 'row', alignItems: 'center', gap: 6,
-                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-                     borderWidth: 1, borderColor: '#10b981', borderStyle: 'dashed'
-                  }}
-               >
-                  <Ionicons name="add" size={18} color="#10b981" />
-                  <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700' }}>Bo'lim qo'shish</Text>
-               </TouchableOpacity>
+               <>
+                  <TouchableOpacity 
+                     activeOpacity={0.7}
+                     onPress={() => setCreateStageModal(true)}
+                     style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+                        borderWidth: 1, borderColor: '#10b981', borderStyle: 'dashed'
+                     }}
+                  >
+                     <Ionicons name="add" size={18} color="#10b981" />
+                     <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700' }}>Bo'lim qo'shish</Text>
+                  </TouchableOpacity>
+                  
+                  {facilityStages.length > 0 && (
+                     <TouchableOpacity 
+                        activeOpacity={0.7}
+                        onPress={() => { setLocalFacilityStages(facilityStages); setReorderStageModal(true); }}
+                        style={{
+                           flexDirection: 'row', alignItems: 'center', gap: 6,
+                           backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                           paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+                           borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)'
+                        }}
+                     >
+                        <Ionicons name="swap-vertical" size={18} color="#a1a1aa" />
+                        <Text style={{ color: '#a1a1aa', fontSize: 13, fontWeight: '700' }}>Tartiblash</Text>
+                     </TouchableOpacity>
+                  )}
+               </>
             )}
          </ScrollView>
       </View>
@@ -495,35 +539,10 @@ export default function OrdersScreen() {
                         <TouchableOpacity 
                           style={styles.mainBtn} 
                           activeOpacity={0.8} 
-                          onPress={async () => {
-                             try {
-                                setUpdatingId(selectedOrder.id);
-                                const PIPELINE = [
-                                    'AT_FACILITY',
-                                    'WASHING',
-                                    'DRYING',
-                                    'FINISHED',
-                                    ...facilityStages.map(s => s.id)
-                                ];
-                                let currentKey = selectedOrder.facilityStageId || selectedOrder.status;
-                                let currentIndex = PIPELINE.indexOf(currentKey);
-
-                                let nextPayload = { status: 'READY_FOR_DELIVERY', facilityStageId: null as any };
-                                if (currentIndex !== -1 && currentIndex < PIPELINE.length - 1) {
-                                    let nextKey = PIPELINE[currentIndex + 1];
-                                    if (facilityStages.find(s => s.id === nextKey)) {
-                                        nextPayload = { status: selectedOrder.status, facilityStageId: nextKey };
-                                    } else {
-                                        nextPayload = { status: nextKey, facilityStageId: null as any };
-                                    }
-                                }
-                                await updateOrderStatus(selectedOrder.id, nextPayload.status, undefined, undefined, nextPayload.facilityStageId);
-                                await loadOrders();
-                                setSelectedOrder(null);
-                             } catch(e: any) { Alert.alert('Xato', e.message); }
-                             finally { setUpdatingId(null); }
+                          onPress={() => {
+                             handleAutoNextStage(selectedOrder.id, selectedOrder.status, (selectedOrder as any).facilityStage?.id || null);
+                             setSelectedOrder(null);
                           }}
-                          disabled={updatingId === selectedOrder.id}
                         >
                           {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>Keyingi bo'limga o'tkazish ➡️</Text>}
                         </TouchableOpacity>
@@ -596,59 +615,69 @@ export default function OrdersScreen() {
       </Modal>
 
       {/* REORDER STAGES MODAL */}
-      <Modal visible={reorderModal} animationType="fade" transparent>
-         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', padding: 24, justifyContent: 'center' }}>
-            <View style={{ backgroundColor: '#18181b', borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: '#27272a', maxHeight: '80%' }}>
-               <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 16 }}>Bo'limlar tartibini sozlash</Text>
-               <ScrollView style={{ marginBottom: 16 }}>
-                  {temporaryStages.map((stage, idx) => (
-                      <View key={stage.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#09090b', padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: '#27272a' }}>
-                         <Text style={{ color: '#fff', fontSize: 16, flex: 1, fontWeight: '700' }}>{stage.name}</Text>
-                         <View style={{ flexDirection: 'row', gap: 8 }}>
-                             <TouchableOpacity 
-                                disabled={idx === 0} 
-                                onPress={() => {
-                                   let arr = [...temporaryStages];
-                                   [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
-                                   setTemporaryStages(arr);
-                                }}
-                                style={{ width: 36, height: 36, backgroundColor: idx === 0 ? '#27272a' : '#10b981', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}
-                             >
-                                <Ionicons name="arrow-up" size={18} color="#fff" />
-                             </TouchableOpacity>
-                             <TouchableOpacity 
-                                disabled={idx === temporaryStages.length - 1} 
-                                onPress={() => {
-                                   let arr = [...temporaryStages];
-                                   [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
-                                   setTemporaryStages(arr);
-                                }}
-                                style={{ width: 36, height: 36, backgroundColor: idx === temporaryStages.length - 1 ? '#27272a' : '#10b981', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}
-                             >
-                                <Ionicons name="arrow-down" size={18} color="#fff" />
-                             </TouchableOpacity>
-                         </View>
-                      </View>
-                  ))}
-               </ScrollView>
-               <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <TouchableOpacity style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#27272a', alignItems: 'center' }} onPress={() => setReorderModal(false)}>
-                     <Text style={{ color: '#fff', fontWeight: '700' }}>Bekor qilish</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={{ flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#10b981', alignItems: 'center' }}
-                    onPress={async () => {
-                       try {
-                          const payload = temporaryStages.map((s, i) => ({ id: s.id, orderIndex: i }));
-                          await reorderFacilityStages(payload);
-                          setReorderModal(false);
-                          loadOrders();
-                       } catch (e: any) { Alert.alert("Xato", e.message); }
-                    }}
-                  >
-                     <Text style={{ color: '#064e3b', fontWeight: '800' }}>Saqlash</Text>
+      <Modal visible={reorderStageModal} animationType="slide" transparent>
+         <View style={styles.modalOverlay}>
+            <View style={{...styles.modalContent, height: '70%'}}>
+               <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Bo'limlarni Tariblash</Text>
+                  <TouchableOpacity onPress={() => setReorderStageModal(false)} style={styles.closeBtn}>
+                     <Ionicons name="close" size={20} color="#ffffff" />
                   </TouchableOpacity>
                </View>
+               <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                  <Text style={{ color: '#71717a', fontSize: 13, marginBottom: 16 }}>Siz yasagan maxsus bo'limlar shu tartibda ketma-ketlikda o'tadi:</Text>
+                  
+                  {localFacilityStages.map((stage, idx) => (
+                     <View 
+                        key={stage.id} 
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#09090b', padding: 12, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#27272a' }}
+                     >
+                        <Ionicons name={stage.icon as any || 'folder'} size={24} color="#10b981" style={{ marginRight: 12 }} />
+                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', flex: 1 }}>{stage.name}</Text>
+                        
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                           <TouchableOpacity 
+                              style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center', opacity: idx === 0 ? 0.3 : 1 }}
+                              disabled={idx === 0}
+                              onPress={() => {
+                                 const copy = [...localFacilityStages];
+                                 const temp = copy[idx-1];
+                                 copy[idx-1] = copy[idx];
+                                 copy[idx] = temp;
+                                 setLocalFacilityStages(copy);
+                              }}
+                           >
+                              <Ionicons name="arrow-up" size={18} color="#fff" />
+                           </TouchableOpacity>
+                           <TouchableOpacity 
+                              style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center', opacity: idx === localFacilityStages.length - 1 ? 0.3 : 1 }}
+                              disabled={idx === localFacilityStages.length - 1}
+                              onPress={() => {
+                                 const copy = [...localFacilityStages];
+                                 const temp = copy[idx+1];
+                                 copy[idx+1] = copy[idx];
+                                 copy[idx] = temp;
+                                 setLocalFacilityStages(copy);
+                              }}
+                           >
+                              <Ionicons name="arrow-down" size={18} color="#fff" />
+                           </TouchableOpacity>
+                        </View>
+                     </View>
+                  ))}
+               </ScrollView>
+               <TouchableOpacity 
+                  style={{ ...styles.mainBtn, marginBottom: 20 }}
+                  onPress={async () => {
+                     try {
+                        await reorderFacilityStages(user?.companyId as string, localFacilityStages.map(s => s.id));
+                        setReorderStageModal(false);
+                        loadOrders();
+                     } catch(e:any) { Alert.alert('Xato', e.message); }
+                  }}
+               >
+                  <Text style={styles.mainBtnText}>Tartibni Saqlash</Text>
+               </TouchableOpacity>
             </View>
          </View>
       </Modal>

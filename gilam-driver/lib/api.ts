@@ -257,13 +257,15 @@ export async function createFacilityStage(companyId: string, name: string, icon:
 }
 
 export async function deleteFacilityStage(stageId: string): Promise<any> {
-  return request<any>(`/facility-stages/${stageId}`, { method: 'DELETE' });
+  return request<any>(`/facility-stages/${stageId}`, {
+    method: 'DELETE',
+  });
 }
 
-export async function reorderFacilityStages(stages: { id: string, orderIndex: number }[]): Promise<any> {
+export async function reorderFacilityStages(companyId: string, stageIds: string[]): Promise<any> {
   return request<any>(`/facility-stages/reorder`, {
     method: 'PUT',
-    body: JSON.stringify({ stages }),
+    body: JSON.stringify({ companyId, stageIds }),
   });
 }
 
