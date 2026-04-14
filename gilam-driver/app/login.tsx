@@ -29,9 +29,13 @@ export default function LoginScreen() {
     setLoadingCompanies(true);
     try {
       const data = await getCompanies();
-      setCompanies(data || []);
-    } catch (err) {
-      console.warn("Could not fetch companies");
+      if (!data || !Array.isArray(data)) {
+        throw new Error("Ma'lumotlar formati noto'g'ri");
+      }
+      setCompanies(data);
+    } catch (err: any) {
+      console.warn("Could not fetch companies", err.message);
+      Alert.alert("Xatolik", "Kompaniyalar ro'yxati yuklanmadi. Qayta urinib ko'ring.\n\n" + (err.message || 'Server xatosi'));
     } finally {
       setLoadingCompanies(false);
     }
@@ -76,7 +80,10 @@ export default function LoginScreen() {
              <TouchableOpacity 
                 style={[styles.inputContainer, { paddingHorizontal: 16 }]} 
                 activeOpacity={0.7} 
-                onPress={() => setIsCompanyModalOpen(true)}
+                onPress={() => {
+                  if (companies.length === 0) fetchCompanies(); 
+                  setIsCompanyModalOpen(true);
+                }}
              >
                 <Ionicons name="business" size={20} color="#71717a" style={styles.inputIcon} />
                 <Text style={[styles.input, { color: companyName ? '#ffffff' : '#52525b', paddingTop: 2 }]}>
