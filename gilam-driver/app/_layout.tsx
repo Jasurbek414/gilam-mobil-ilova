@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { getToken, getUser, User } from '../lib/api';
+import { syncPushTokenToBackend } from '../lib/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +32,8 @@ export default function RootLayout() {
         if (token) {
           const u = await getUser();
           setUser(u);
+          // Sync notification token blindly behind the scenes
+          syncPushTokenToBackend();
         }
       } catch (e) {
         console.log('Auth check error:', e);
