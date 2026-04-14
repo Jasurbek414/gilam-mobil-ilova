@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, Alert,
-  ActivityIndicator, ScrollView
+  ActivityIndicator, ScrollView, Modal
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { login } from '../lib/api';
+import { login, getCompanies } from '../lib/api';
 import { useAuth } from './_layout';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
@@ -14,9 +14,28 @@ export default function LoginScreen() {
   const router = useRouter();
   const { setUser } = useAuth();
   const [companyName, setCompanyName] = useState('');
+  const [companies, setCompanies] = useState<{id: string, name: string}[]>([]);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  const fetchCompanies = async () => {
+    setLoadingCompanies(true);
+    try {
+      const data = await getCompanies();
+      setCompanies(data || []);
+    } catch (err) {
+      console.warn("Could not fetch companies");
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!companyName.trim() || !phone.trim() || !password.trim()) {
@@ -54,18 +73,17 @@ export default function LoginScreen() {
 
           {/* Form */}
           <View style={styles.formBox}>
-             <View style={styles.inputContainer}>
+             <TouchableOpacity 
+                style={[styles.inputContainer, { paddingHorizontal: 16 }]} 
+                activeOpacity={0.7} 
+                onPress={() => setIsCompanyModalOpen(true)}
+             >
                 <Ionicons name="business" size={20} color="#71717a" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={companyName}
-                  onChangeText={setCompanyName}
-                  placeholder="Kampaniya nomi (misol: Ideal Gilam)"
-                  placeholderTextColor="#52525b"
-                  autoCapitalize="words"
-                  cursorColor="#10b981"
-                />
-             </View>
+                <Text style={[styles.input, { color: companyName ? '#ffffff' : '#52525b', paddingTop: 2 }]}>
+                  {companyName ? companyName : "Kampaniya nomini tanlang"}
+                </Text>
+                {loadingCompanies ? <ActivityIndicator size="small" color="#10b981" /> : <Ionicons name="chevron-down" size={20} color="#71717a" />}
+             </TouchableOpacity>
 
              <View style={styles.inputContainer}>
                 <Ionicons name="call" size={20} color="#71717a" style={styles.inputIcon} />
@@ -110,6 +128,40 @@ export default function LoginScreen() {
         </View>
 
       </KeyboardAvoidingView>
+
+      {/* Company Selector Modal */}
+      <Modal visible={isCompanyModalOpen} transparent animationType="slide">
+         <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+               <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Kampaniyani tanlang</Text>
+                  <TouchableOpacity onPress={() => setIsCompanyModalOpen(false)} style={styles.closeBtn}>
+                     <Ionicons name="close" size={24} color="#ffffff" />
+                  </TouchableOpacity>
+               </View>
+
+               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                  {companies.length === 0 ? (
+                    <Text style={{color: '#a1a1aa', textAlign: 'center', marginTop: 40}}>Kampaniyalar topilmadi.</Text>
+                  ) : null}
+                  {companies.map(c => (
+                    <TouchableOpacity 
+                      key={c.id} 
+                      style={styles.companyOption}
+                      onPress={() => {
+                        setCompanyName(c.name);
+                        setIsCompanyModalOpen(false);
+                      }}
+                    >
+                       <Ionicons name="business-outline" size={20} color="#10b981" style={{marginRight: 12}} />
+                       <Text style={styles.companyOptionText}>{c.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+               </ScrollView>
+            </View>
+         </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -130,4 +182,13 @@ const styles = StyleSheet.create({
   forgotPass: { color: '#71717a', fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 24 },
   footer: { position: 'absolute', bottom: 24, flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center' },
   footerText: { color: '#52525b', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
+  modalContent: { backgroundColor: '#18181b', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '60%', padding: 24, borderWidth: 1, borderColor: '#27272a' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#27272a', paddingBottom: 16, marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff' },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center' },
+  modalScroll: { flex: 1 },
+  companyOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#27272a' },
+  companyOptionText: { color: '#ffffff', fontSize: 16, fontWeight: '700' }
 });

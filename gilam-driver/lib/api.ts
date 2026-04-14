@@ -112,6 +112,12 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   return res.json();
 }
 
+export async function getCompanies(): Promise<{id: string, name: string}[]> {
+  return request<{id: string, name: string}[]>('/public/companies', {
+    method: 'GET'
+  });
+}
+
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
 export async function login(phone: string, password: string, companyName: string): Promise<User> {
