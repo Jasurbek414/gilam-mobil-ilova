@@ -208,10 +208,11 @@ export async function getOrderDetails(orderId: string): Promise<Order> {
   return request<Order>(`/orders/${orderId}`);
 }
 
-export async function updateOrderStatus(orderId: string, status: string, notes?: string, deadlineDate?: string): Promise<Order> {
+export async function updateOrderStatus(orderId: string, status: string, notes?: string, deadlineDate?: string, facilityStageId?: string): Promise<Order> {
   const body: any = { status };
   if (notes) body.notes = notes;
   if (deadlineDate) body.deadlineDate = deadlineDate;
+  if (facilityStageId) body.facilityStageId = facilityStageId;
   
   return request<Order>(`/orders/${orderId}/status`, {
     method: 'PATCH',
@@ -232,6 +233,27 @@ export async function getDriverCompletedOrders(driverId: string): Promise<Order[
 
 export async function getFacilityCompletedOrders(companyId: string): Promise<Order[]> {
   return request<Order[]>(`/orders/facility/${companyId}/history`);
+}
+
+// ─── Dynamic Stages API ───────────────────────────────────────────────────────
+
+export interface FacilityStage {
+  id: string;
+  companyId: string;
+  name: string;
+  icon: string;
+  orderIndex: number;
+}
+
+export async function getFacilityStages(companyId: string): Promise<FacilityStage[]> {
+  return request<FacilityStage[]>(`/facility-stages/company/${companyId}`);
+}
+
+export async function createFacilityStage(companyId: string, name: string, icon: string): Promise<FacilityStage> {
+  return request<FacilityStage>(`/facility-stages`, {
+    method: 'POST',
+    body: JSON.stringify({ companyId, name, icon }),
+  });
 }
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
