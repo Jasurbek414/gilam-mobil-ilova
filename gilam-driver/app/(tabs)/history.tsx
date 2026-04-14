@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Platform, Alert, TextInput } from 'react-native';
 import { useAuth } from '../_layout';
-import { getDriverCompletedOrders, getFacilityCompletedOrders, updateOrderStatus, Order } from '../../lib/api';
+import { getDriverCompletedOrders, getFacilityCompletedOrders, updateOrderStatus, Order, STATUS_CONFIG } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HistoryScreen() {
@@ -76,8 +76,8 @@ export default function HistoryScreen() {
           <TouchableOpacity activeOpacity={0.7} style={styles.card} onPress={() => setSelectedOrder(item)}>
              <View style={styles.rowInfo}>
                 <Text style={styles.idText}>#{item.id.substring(0, 8)}</Text>
-                <Text style={[styles.statusTag, item.status === 'CANCELLED' && { color: '#ef4444' }]}>
-                   {item.status === 'DELIVERED' ? 'YAKUNLANDI 📦' : 'BEKOR QILINGAN ❌'}
+                <Text style={[styles.statusTag, item.status === 'CANCELLED' ? { color: '#ef4444' } : { color: STATUS_CONFIG[item.status]?.color || '#10b981' }]}>
+                   {item.status === 'DELIVERED' ? 'YAKUNLANDI 📦' : item.status === 'CANCELLED' ? 'BEKOR QILINGAN ❌' : `${STATUS_CONFIG[item.status]?.label.toUpperCase()} ${STATUS_CONFIG[item.status]?.emoji}`}
                 </Text>
              </View>
              {item.customer && (
