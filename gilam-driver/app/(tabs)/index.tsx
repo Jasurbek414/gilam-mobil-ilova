@@ -13,6 +13,7 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [deadlineOrder, setDeadlineOrder] = useState<{ id: string, nextStatus: string } | null>(null);
   const [completeOrderModal, setCompleteOrderModal] = useState<Order | null>(null);
   const [receivedAmount, setReceivedAmount] = useState<string>('');
@@ -73,11 +74,55 @@ export default function OrdersScreen() {
     return <View style={styles.center}><ActivityIndicator size="large" color="#10b981" /></View>;
   }
 
+  const FACILITY_FILTERS = [
+     { key: 'ALL', label: 'Barchasi', icon: 'list' },
+     { key: 'AT_FACILITY', label: 'Sexga tushgan', icon: 'business' },
+     { key: 'WASHING', label: 'Yuvilmoqda', icon: 'water' },
+     { key: 'DRYING', label: 'Quritilmoqda', icon: 'sunny' },
+  ];
+
+  const DRIVER_FILTERS = [
+     { key: 'ALL', label: 'Barchasi', icon: 'list' },
+     { key: 'NEW', label: 'Yangi ishlar', icon: 'flash' },
+     { key: 'DRIVER_ASSIGNED', label: 'Olib kelish', icon: 'car' },
+     { key: 'READY_FOR_DELIVERY', label: 'Yetkazish', icon: 'cube' },
+     { key: 'OUT_FOR_DELIVERY', label: 'Yo\'lda', icon: 'navigate' },
+  ];
+
+  const currentFilters = user?.appRole === 'FACILITY' ? FACILITY_FILTERS : DRIVER_FILTERS;
+  const filteredOrders = filterStatus === 'ALL' ? orders : orders.filter(o => o.status === filterStatus);
+
   return (
     <View style={styles.container}>
 
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 }}>
+         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {currentFilters.map(f => {
+               const isActive = filterStatus === f.key;
+               return (
+                  <TouchableOpacity 
+                     key={f.key}
+                     activeOpacity={0.7}
+                     onPress={() => setFilterStatus(f.key)}
+                     style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: isActive ? '#10b981' : 'rgba(255,255,255,0.05)',
+                        paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+                        borderWidth: 1, borderColor: isActive ? '#10b981' : 'rgba(255,255,255,0.1)'
+                     }}
+                  >
+                     <Ionicons name={f.icon as any} size={16} color={isActive ? '#064e3b' : '#a1a1aa'} />
+                     <Text style={{ color: isActive ? '#064e3b' : '#a1a1aa', fontSize: 14, fontWeight: '700' }}>
+                        {f.label}
+                     </Text>
+                  </TouchableOpacity>
+               )
+            })}
+         </ScrollView>
+      </View>
+
       <FlatList
-        data={orders}
+        data={filteredOrders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />}
