@@ -87,53 +87,27 @@ export default function OrdersScreen() {
           const config = STATUS_CONFIG[item.status] || { label: item.status, emoji: '📦' };
 
           return (
-            <View style={styles.card}>
-              <View style={styles.cardInfo}>
-                 <Text style={styles.idText}>#{(item.id).substring(0, 8)}</Text>
-                 <Text style={styles.statusText}>{config.emoji} {config.label}</Text>
-              </View>
-
-              {item.customer && (
-                <View style={styles.customerBlock}>
-                   <View style={{flex: 1}}>
-                      <Text style={styles.cName}>{item.customer.fullName}</Text>
-                      <Text style={styles.cPhone}>{item.customer.phone1}</Text>
-                      <Text style={styles.cAddress} numberOfLines={2}>{item.customer.address || "Manzil kiritilmagan"}</Text>
-                   </View>
-                   <View style={styles.actionGrid}>
-                      <TouchableOpacity style={styles.iconBtn} onPress={() => Linking.openURL(`tel:${item.customer!.phone1}`)}>
-                         <Ionicons name="call" size={20} color="#10b981" />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.iconBtn, { marginTop: 12 }]} onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${item.customer!.address!}`)}>
-                         <Ionicons name="navigate" size={20} color="#38bdf8" />
-                      </TouchableOpacity>
-                   </View>
-                </View>
-              )}
-
-              <TouchableOpacity 
-                 style={styles.footerData} 
-                 activeOpacity={0.6}
-                 onPress={() => setSelectedOrder(item)}
-              >
-                 <View>
-                    <Text style={styles.fText}>{item.items?.length || 0} dona narsa <Ionicons name="information-circle-outline" size={14} color="#10b981"/></Text>
-                    <Text style={styles.fMoney}>{Number(item.totalAmount).toLocaleString()} So'm</Text>
+            <TouchableOpacity 
+              style={styles.cardCompact} 
+              activeOpacity={0.7}
+              onPress={() => setSelectedOrder(item)}
+            >
+              <View style={styles.cRow}>
+                 <Text style={styles.cNameMini} numberOfLines={1}>{item.customer?.fullName || 'Noma\'lum shaxs'}</Text>
+                 <View style={styles.statusBadgeCompact}>
+                    <Text style={styles.statusBadgeText}>{config.emoji} {config.label}</Text>
                  </View>
-                 <Ionicons name="chevron-forward" size={20} color="#71717a" />
-              </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.cAddressMini} numberOfLines={1}>
+                 <Ionicons name="location" size={12} color="#71717a" /> {item.customer?.address || "Manzil kiritilmagan"}
+              </Text>
 
-              {config.next && (
-                 <TouchableOpacity 
-                   style={styles.mainBtn} 
-                   activeOpacity={0.8} 
-                   onPress={() => handleUpdateStatus(item.id, config.next!)}
-                   disabled={updatingId === item.id}
-                 >
-                   {updatingId === item.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>{config.nextLabel}</Text>}
-                 </TouchableOpacity>
-              )}
-            </View>
+              <View style={styles.cFooterMini}>
+                 <Text style={styles.cMetaMini}>{item.items?.length || 0} narsa • {Number(item.totalAmount).toLocaleString()} sum</Text>
+                 <Ionicons name="chevron-forward" size={16} color="#71717a" />
+              </View>
+            </TouchableOpacity>
           );
         }}
       />
@@ -162,35 +136,75 @@ export default function OrdersScreen() {
                        <Text style={styles.mValue}>{new Date(selectedOrder.createdAt).toLocaleString('uz-UZ')}</Text>
                     </View>
 
-                    {selectedOrder.notes ? (
-                       <View style={styles.mNotesBox}>
-                          <Text style={styles.mLabel}>Izohlar:</Text>
-                          <Text style={styles.mNotesText}>{selectedOrder.notes}</Text>
-                       </View>
-                    ) : null}
+                    <View style={styles.mRow}>
+                        <Text style={styles.mLabel}>Xaridor:</Text>
+                        <Text style={styles.mValue}>{selectedOrder.customer?.fullName}</Text>
+                     </View>
 
-                    <Text style={styles.sectionTitle}>Narsalar ro'yxati</Text>
-                    {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
-                        <Text style={styles.emptyItems}>Ichida narsalar hali biriktirilmagan.</Text>
-                    ) : (
-                       selectedOrder.items.map((it, idx) => (
-                          <View key={it.id || idx} style={styles.itemBox}>
-                             <View style={styles.itemHeader}>
-                                <Text style={styles.itemName}>{it.service?.name || 'Noma\'lum xizmat'}</Text>
-                                <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
-                             </View>
-                             <View style={styles.itemDetails}>
-                                <Text style={styles.itemMetric}>{it.quantity} qism</Text>
-                                {(it.width && it.length) ? (
-                                   <Text style={styles.itemDim}>{it.width} x {it.length} = {(it.width * it.length).toFixed(2)} m²</Text>
-                                ) : null}
-                             </View>
-                          </View>
-                       ))
-                    )}
-                 </ScrollView>
-              </View>
-           </View>
+                     <View style={styles.mRow}>
+                        <Text style={styles.mLabel}>Telefon:</Text>
+                        <Text style={styles.mValue}>{selectedOrder.customer?.phone1}</Text>
+                     </View>
+
+                     {selectedOrder.customer && (
+                       <View style={styles.modalActionGrid}>
+                          <TouchableOpacity style={styles.mBtnCall} onPress={() => Linking.openURL(`tel:${selectedOrder.customer!.phone1}`)}>
+                             <Ionicons name="call" size={20} color="#fff" />
+                             <Text style={styles.mBtnText}>Qo'ng'iroq</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.mBtnMap} onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${selectedOrder.customer!.address!}`)}>
+                             <Ionicons name="navigate" size={20} color="#fff" />
+                             <Text style={styles.mBtnText}>Xarita</Text>
+                          </TouchableOpacity>
+                       </View>
+                     )}
+
+                     {selectedOrder.notes ? (
+                        <View style={styles.mNotesBox}>
+                           <Text style={styles.mLabel}>Izohlar:</Text>
+                           <Text style={styles.mNotesText}>{selectedOrder.notes}</Text>
+                        </View>
+                     ) : null}
+
+                     <Text style={styles.sectionTitle}>Narsalar ro'yxati</Text>
+                     {(!selectedOrder.items || selectedOrder.items.length === 0) ? (
+                         <Text style={styles.emptyItems}>Ichida narsalar hali biriktirilmagan.</Text>
+                     ) : (
+                        selectedOrder.items.map((it, idx) => (
+                           <View key={it.id || idx} style={styles.itemBox}>
+                              <View style={styles.itemHeader}>
+                                 <Text style={styles.itemName}>{it.service?.name || 'Noma\'lum xizmat'}</Text>
+                                 <Text style={styles.itemPrice}>{Number(it.totalPrice).toLocaleString()} so'm</Text>
+                              </View>
+                              <View style={styles.itemDetails}>
+                                 <Text style={styles.itemMetric}>{it.quantity} qism</Text>
+                                 {(it.width && it.length) ? (
+                                    <Text style={styles.itemDim}>{it.width} x {it.length} = {(it.width * it.length).toFixed(2)} m²</Text>
+                                 ) : null}
+                              </View>
+                           </View>
+                        ))
+                     )}
+
+                     <View style={{ height: 24 }} />
+                     
+                     {STATUS_CONFIG[selectedOrder.status]?.next && (
+                        <TouchableOpacity 
+                          style={styles.mainBtn} 
+                          activeOpacity={0.8} 
+                          onPress={() => {
+                             handleUpdateStatus(selectedOrder.id, STATUS_CONFIG[selectedOrder.status].next!);
+                             setSelectedOrder(null);
+                          }}
+                          disabled={updatingId === selectedOrder.id}
+                        >
+                          {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>{STATUS_CONFIG[selectedOrder.status].nextLabel}</Text>}
+                        </TouchableOpacity>
+                     )}
+                     <View style={{ height: 40 }} />
+                  </ScrollView>
+               </View>
+            </View>
          )}
       </Modal>
 
@@ -224,13 +238,27 @@ const styles = StyleSheet.create({
   fText: { fontSize: 13, color: '#10b981', fontWeight: '700', marginBottom: 4 },
   fMoney: { fontSize: 18, color: '#ffffff', fontWeight: '900' },
   mainBtn: { backgroundColor: '#10b981', height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  mainBtnText: { color: '#09090b', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
+  mainBtnText: { color: '#09090b', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
   empty: { alignItems: 'center', marginTop: 100 },
   emptyTitle: { fontSize: 20, color: '#ffffff', fontWeight: '800', marginTop: 24 },
   emptyDesc: { fontSize: 14, color: '#71717a', textAlign: 'center', paddingHorizontal: 40, marginTop: 8 },
 
+  cardCompact: { backgroundColor: '#18181b', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#27272a' },
+  cRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  cNameMini: { fontSize: 16, color: '#fff', fontWeight: '800', flex: 1, paddingRight: 8 },
+  statusBadgeCompact: { backgroundColor: '#27272a', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  cAddressMini: { fontSize: 12, color: '#a1a1aa', marginBottom: 12 },
+  cFooterMini: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#27272a', paddingTop: 10 },
+  cMetaMini: { fontSize: 13, color: '#10b981', fontWeight: '800' },
+
+  modalActionGrid: { flexDirection: 'row', gap: 12, marginTop: 12, marginBottom: 16 },
+  mBtnCall: { flex: 1, backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 48, borderRadius: 12, gap: 8 },
+  mBtnMap: { flex: 1, backgroundColor: '#38bdf8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 48, borderRadius: 12, gap: 8 },
+  mBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
-  modalContent: { backgroundColor: '#18181b', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '75%', padding: 24, borderWidth: 1, borderColor: '#27272a' },
+  modalContent: { backgroundColor: '#18181b', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 24, borderWidth: 1, borderColor: '#27272a' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#27272a', paddingBottom: 16, marginBottom: 16 },
   modalTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff' },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center' },
