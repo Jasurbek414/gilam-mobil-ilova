@@ -6,9 +6,6 @@ import { request } from './api';
 // ─── Expo Go Detection ────────────────────────────────────────────────────────
 export const isExpoGo = Constants.appOwnership === 'expo';
 
-// ─── Notification registratsiya ───────────────────────────────────────────────
-// expo-notifications SDK 53 da Expo Go dan olib tashlandi.
-// Barcha funksiyalar isExpoGo bo'lsa skip qiladi.
 import * as N from 'expo-notifications';
 
 // ─── Foreground handler ───────────────────────────────────────────────────────
@@ -25,92 +22,79 @@ export function setupForegroundNotificationHandler() {
   } catch (_) {}
 }
 
-// ─── Android kanallarini sozlash ──────────────────────────────────────────────
+// ─── Android notification channels ───────────────────────────────────────────
 export async function setupNotificationChannels() {
   if (isExpoGo || Platform.OS !== 'android') return;
   try {
     await N.setNotificationChannelAsync('chat_messages', {
       name: '💬 Chat xabarlari',
-      importance: N.AndroidImportance.HIGH,
+      importance: N.AndroidImportance.MAX,
       sound: 'default',
       vibrationPattern: [0, 150, 100, 150],
       lightColor: '#10b981',
       enableLights: true,
       enableVibrate: true,
       showBadge: true,
+      lockscreenVisibility: N.AndroidNotificationVisibility.PUBLIC,
     });
     await N.setNotificationChannelAsync('default', {
       name: 'Bildirishnomalar',
-      importance: N.AndroidImportance.HIGH,
+      importance: N.AndroidImportance.MAX,
       sound: 'default',
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#10b981',
       enableVibrate: true,
       showBadge: true,
+      lockscreenVisibility: N.AndroidNotificationVisibility.PUBLIC,
     });
-  } catch (_) {}
+    console.log('[Push] ✅ Notification channels yaratildi');
+  } catch (e) {
+    console.warn('[Push] Channel xatolik:', e);
+  }
 }
 
-/**
- * Bildirishnoma ruxsatini tekshirib, kerak bo'lsa so'raydi.
- * Ruxsat berilmagan bo'lsa → sozlamalarga yo'naltirish dialog chiqaradi.
- * @returns 'granted' | 'denied' | 'skipped'
- */
+// ─── Ruxsat so'rash ───────────────────────────────────────────────────────────
 export async function ensureNotificationPermission(): Promise<'granted' | 'denied' | 'skipped'> {
   if (isExpoGo || !Device.isDevice) return 'skipped';
 
   try {
     const { status } = await N.getPermissionsAsync();
-
     if (status === 'granted') return 'granted';
 
     if (status === 'undetermined') {
-      // Birinchi marta — tizim dialog chiqaradi
       const { status: newStatus } = await N.requestPermissionsAsync();
       if (newStatus === 'granted') return 'granted';
-      // Rad etildi — sozlamalarga yo'naltir
       await showGoToSettingsAlert();
       return 'denied';
     }
 
-    // status === 'denied' — tizim dialog qayta chiqarmaydi, sozlamalarga yo'nalt
     await showGoToSettingsAlert();
     return 'denied';
   } catch (e) {
-    console.warn('[Push] Permission check error:', e);
+    console.warn('[Push] Permission error:', e);
     return 'denied';
   }
 }
 
-/**
- * Foydalanuvchiga tushuntirib, sozlamalarga yo'naltiruvchi dialog.
- */
 async function showGoToSettingsAlert() {
-  await new Promise<void>((resolve) => {
+  return new Promise<void>((resolve) => {
     Alert.alert(
       '🔔 Bildirishnomalar o\'chirilgan',
-      'Operator xabarlarini va buyurtma yangilanishlarini olish uchun bildirishnomalar yoqilgan bo\'lishi kerak.\n\nSozlamalardan "Bildirishnomalar" bo\'limida ilova uchun ruxsat bering.',
+      'Operator xabarlarini va buyurtma yangilanishlarini olish uchun bildirishnomalar yoqilgan bo\'lishi kerak.',
       [
-        {
-          text: 'Keyinroq',
-          style: 'cancel',
-          onPress: resolve,
-        },
+        { text: 'Keyinroq', style: 'cancel', onPress: resolve },
         {
           text: '⚙️ Sozlamalarni ochish',
           onPress: async () => {
             try {
               if (Platform.OS === 'android') {
-                // Android: to'g'ridan-to'g'ri ilova bildirishnoma sozlamalariga
                 await Linking.sendIntent('android.settings.APP_NOTIFICATION_SETTINGS', [
                   { key: 'android.provider.extra.APP_PACKAGE', value: 'uz.ecos.gilam.driver' },
                 ]);
               } else {
-                // iOS: ilova sozlamalari
                 await Linking.openURL('app-settings:');
               }
             } catch {
-              // Fallback: umumiy ilova sozlamalari
               await Linking.openSettings();
             }
             resolve();
@@ -121,14 +105,14 @@ async function showGoToSettingsAlert() {
   });
 }
 
-// ─── Push token olish ─────────────────────────────────────────────────────────
+// ─── FCM Token olish (to'g'ridan-to'g'ri Firebase, Expo account kerak emas) ──
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (isExpoGo) {
     console.log('[Push] Expo Go — token olinmaydi');
     return null;
   }
   if (!Device.isDevice) {
-    console.warn('[Push] Emulator — token olinmaydi');
+    console.warn('[Push] Emulator — skip');
     return null;
   }
 
@@ -136,17 +120,22 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     await setupNotificationChannels();
 
     const permResult = await ensureNotificationPermission();
-    if (permResult !== 'granted') return null;
+    if (permResult !== 'granted') {
+      console.log('[Push] Ruxsat berilmadi:', permResult);
+      return null;
+    }
 
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ??
-      Constants?.easConfig?.projectId;
-
-    const { data: token } = await N.getExpoPushTokenAsync(
-      projectId ? { projectId } : {}
-    );
-    console.log('[Push] ✅ Token olindi');
-    return token ?? null;
+    // ✅ FCM token — to'g'ridan-to'g'ri Firebase, EAS kerak emas
+    const pushToken = await N.getDevicePushTokenAsync();
+    const token = pushToken?.data as string;
+    
+    if (!token) {
+      console.warn('[Push] FCM token bo\'sh');
+      return null;
+    }
+    
+    console.log('[Push] ✅ FCM token olindi:', token.substring(0, 20) + '...');
+    return token;
   } catch (e: any) {
     console.warn('[Push] Token xatolik:', e?.message ?? e);
     return null;
@@ -161,16 +150,16 @@ export async function syncPushTokenToBackend(): Promise<void> {
     if (token) {
       await request('/users/push-token', {
         method: 'PUT',
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, type: 'fcm' }),
       });
-      console.log('[Push] ✅ Token backendga saqlandi');
+      console.log('[Push] ✅ FCM token backendga saqlandi');
     }
   } catch (e) {
     console.warn('[Push] Sync xatolik:', e);
   }
 }
 
-// ─── Listener larni qo'shish ──────────────────────────────────────────────────
+// ─── Listeners ───────────────────────────────────────────────────────────────
 export function addNotificationReceivedListener(
   cb: (n: any) => void
 ): (() => void) | null {
@@ -178,9 +167,7 @@ export function addNotificationReceivedListener(
   try {
     const sub = N.addNotificationReceivedListener(cb);
     return () => N.removeNotificationSubscription(sub);
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 export function addNotificationResponseListener(
@@ -190,7 +177,5 @@ export function addNotificationResponseListener(
   try {
     const sub = N.addNotificationResponseReceivedListener(cb);
     return () => N.removeNotificationSubscription(sub);
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
