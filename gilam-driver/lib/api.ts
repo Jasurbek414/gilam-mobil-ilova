@@ -1,6 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE = 'https://gilam-api.ecos.uz/api';
+export const API_URL = 'https://gilam-api.ecos.uz/api';
+const API_BASE = API_URL;
+
 
 // ─── Token Management ────────────────────────────────────────────────────────
 
