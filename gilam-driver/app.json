@@ -18,7 +18,8 @@
       "bundleIdentifier": "uz.ecos.gilam.driver",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Haydovchi lokatsiyasini kuzatish uchun kerak"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Haydovchi lokatsiyasini kuzatish uchun kerak",
+        "UIBackgroundModes": ["remote-notification", "fetch"]
       }
     },
     "android": {
@@ -31,7 +32,9 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CALL_PHONE",
-        "VIBRATE"
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
@@ -40,6 +43,14 @@
       [
         "expo-location",
         { "locationWhenInUsePermission": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak" }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#059669",
+          "sounds": []
+        }
       ]
     ]
   }

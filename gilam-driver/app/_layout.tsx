@@ -8,10 +8,11 @@ import {
   setupForegroundNotificationHandler,
   addNotificationReceivedListener,
   addNotificationResponseListener,
+  ensureNotificationPermission,
+  isExpoGo,
 } from '../lib/notifications';
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
-
 interface AuthContextType {
   user: User | null;
   setUser: (u: User | null) => void;
@@ -27,9 +28,8 @@ export const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 // ─── Root Layout ──────────────────────────────────────────────────────────────
-
 export default function RootLayout() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router   = useRouter();
   const segments = useSegments();
@@ -37,10 +37,9 @@ export default function RootLayout() {
   const unsub1 = useRef<(() => void) | null>(null);
   const unsub2 = useRef<(() => void) | null>(null);
 
-  // ── 1. Auth + Push token setup ──────────────────────────────────────────
+  // ── 1. Ilova ishga tushhanda: auth va notification setup ─────────────────
   useEffect(() => {
-    // Foreground notification handler — banner ko'rsatish uchun
-    // (Expo Go da bu funksiya xavfsiz skip qiladi)
+    // Foreground handler — ilovada ochiq bo'lganda ham notification ko'rinsin
     setupForegroundNotificationHandler();
 
     async function init() {
@@ -49,8 +48,13 @@ export default function RootLayout() {
         if (token) {
           const u = await getUser();
           setUser(u);
-          // Push token ni backendga saqlash (Expo Go da skip)
-          await syncPushTokenToBackend();
+
+          if (!isExpoGo) {
+            // Ruxsat so'rash (kerak bo'lsa sozlamalarga yo'naltiradi)
+            await ensureNotificationPermission();
+            // Token ni backendga saqlash
+            await syncPushTokenToBackend();
+          }
         }
       } catch (e) {
         console.log('[Layout] Auth error:', e);
@@ -63,14 +67,15 @@ export default function RootLayout() {
 
   // ── 2. Notification listeners ────────────────────────────────────────────
   useEffect(() => {
-    // Kelgan notification (foreground) — log
+    // Foreground: xabar keldi
     unsub1.current = addNotificationReceivedListener((notification) => {
       console.log('[Push] Foreground:', notification?.request?.content?.title);
     });
 
-    // Notification ga bosilganda → navigatsiya
+    // Tap: foydalanuvchi notification ga bosdi → navigatsiya
     unsub2.current = addNotificationResponseListener((response) => {
       const data = response?.notification?.request?.content?.data || {};
+
       if (data.type === 'chat' && data.senderId) {
         try {
           router.push({
@@ -84,6 +89,7 @@ export default function RootLayout() {
           console.warn('[Push] Navigate error:', e);
         }
       }
+
       if (data.type === 'customer_location') {
         try { router.push('/'); } catch (_) {}
       }
@@ -99,11 +105,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === 'login';
-    if (!user && !inAuth)  router.replace('/login');
-    if (user  && inAuth)   router.replace('/');
+    if (!user && !inAuth) router.replace('/login');
+    if (user  && inAuth)  router.replace('/');
   }, [user, segments, isLoading]);
 
-  // ── Loading ──────────────────────────────────────────────────────────────
+  // ── Loading spinner ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#059669' }}>

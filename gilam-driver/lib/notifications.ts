@@ -1,14 +1,14 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import * as Device from 'expo-device';
 import { request } from './api';
 
-// ─── Expo Go aniqlash ─────────────────────────────────────────────────────────
+// ─── Expo Go Detection ────────────────────────────────────────────────────────
 export const isExpoGo = Constants.appOwnership === 'expo';
 
-// ─── Stub import ─────────────────────────────────────────────────────────────
-// Expo Go da bu fayl bo'sh stub, APK da haqiqiy expo-notifications.
-// metro.config.js da resolver.extraNodeModules orqali almashtiriladi.
+// ─── Notification registratsiya ───────────────────────────────────────────────
+// expo-notifications SDK 53 da Expo Go dan olib tashlandi.
+// Barcha funksiyalar isExpoGo bo'lsa skip qiladi.
 import * as N from 'expo-notifications';
 
 // ─── Foreground handler ───────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ export function setupForegroundNotificationHandler() {
   } catch (_) {}
 }
 
-// ─── Android kanal sozlash ────────────────────────────────────────────────────
+// ─── Android kanallarini sozlash ──────────────────────────────────────────────
 export async function setupNotificationChannels() {
   if (isExpoGo || Platform.OS !== 'android') return;
   try {
@@ -51,32 +51,100 @@ export async function setupNotificationChannels() {
   } catch (_) {}
 }
 
+/**
+ * Bildirishnoma ruxsatini tekshirib, kerak bo'lsa so'raydi.
+ * Ruxsat berilmagan bo'lsa → sozlamalarga yo'naltirish dialog chiqaradi.
+ * @returns 'granted' | 'denied' | 'skipped'
+ */
+export async function ensureNotificationPermission(): Promise<'granted' | 'denied' | 'skipped'> {
+  if (isExpoGo || !Device.isDevice) return 'skipped';
+
+  try {
+    const { status } = await N.getPermissionsAsync();
+
+    if (status === 'granted') return 'granted';
+
+    if (status === 'undetermined') {
+      // Birinchi marta — tizim dialog chiqaradi
+      const { status: newStatus } = await N.requestPermissionsAsync();
+      if (newStatus === 'granted') return 'granted';
+      // Rad etildi — sozlamalarga yo'naltir
+      await showGoToSettingsAlert();
+      return 'denied';
+    }
+
+    // status === 'denied' — tizim dialog qayta chiqarmaydi, sozlamalarga yo'nalt
+    await showGoToSettingsAlert();
+    return 'denied';
+  } catch (e) {
+    console.warn('[Push] Permission check error:', e);
+    return 'denied';
+  }
+}
+
+/**
+ * Foydalanuvchiga tushuntirib, sozlamalarga yo'naltiruvchi dialog.
+ */
+async function showGoToSettingsAlert() {
+  await new Promise<void>((resolve) => {
+    Alert.alert(
+      '🔔 Bildirishnomalar o\'chirilgan',
+      'Operator xabarlarini va buyurtma yangilanishlarini olish uchun bildirishnomalar yoqilgan bo\'lishi kerak.\n\nSozlamalardan "Bildirishnomalar" bo\'limida ilova uchun ruxsat bering.',
+      [
+        {
+          text: 'Keyinroq',
+          style: 'cancel',
+          onPress: resolve,
+        },
+        {
+          text: '⚙️ Sozlamalarni ochish',
+          onPress: async () => {
+            try {
+              if (Platform.OS === 'android') {
+                // Android: to'g'ridan-to'g'ri ilova bildirishnoma sozlamalariga
+                await Linking.sendIntent('android.settings.APP_NOTIFICATION_SETTINGS', [
+                  { key: 'android.provider.extra.APP_PACKAGE', value: 'uz.ecos.gilam.driver' },
+                ]);
+              } else {
+                // iOS: ilova sozlamalari
+                await Linking.openURL('app-settings:');
+              }
+            } catch {
+              // Fallback: umumiy ilova sozlamalari
+              await Linking.openSettings();
+            }
+            resolve();
+          },
+        },
+      ],
+    );
+  });
+}
+
 // ─── Push token olish ─────────────────────────────────────────────────────────
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (isExpoGo) {
-    console.log('[Push] Expo Go — push token olinmaydi');
+    console.log('[Push] Expo Go — token olinmaydi');
     return null;
   }
   if (!Device.isDevice) {
-    console.warn('[Push] Emulator — push token olinmaydi');
+    console.warn('[Push] Emulator — token olinmaydi');
     return null;
   }
+
   try {
     await setupNotificationChannels();
-    const { status: existingStatus } = await N.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await N.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      console.warn('[Push] Ruxsat berilmadi');
-      return null;
-    }
+
+    const permResult = await ensureNotificationPermission();
+    if (permResult !== 'granted') return null;
+
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ??
       Constants?.easConfig?.projectId;
-    const { data: token } = await N.getExpoPushTokenAsync(projectId ? { projectId } : {});
+
+    const { data: token } = await N.getExpoPushTokenAsync(
+      projectId ? { projectId } : {}
+    );
     console.log('[Push] ✅ Token olindi');
     return token ?? null;
   } catch (e: any) {
@@ -95,7 +163,7 @@ export async function syncPushTokenToBackend(): Promise<void> {
         method: 'PUT',
         body: JSON.stringify({ token }),
       });
-      console.log('[Push] ✅ Token backend da saqlandi');
+      console.log('[Push] ✅ Token backendga saqlandi');
     }
   } catch (e) {
     console.warn('[Push] Sync xatolik:', e);
@@ -103,7 +171,9 @@ export async function syncPushTokenToBackend(): Promise<void> {
 }
 
 // ─── Listener larni qo'shish ──────────────────────────────────────────────────
-export function addNotificationReceivedListener(cb: (n: any) => void): (() => void) | null {
+export function addNotificationReceivedListener(
+  cb: (n: any) => void
+): (() => void) | null {
   if (isExpoGo) return null;
   try {
     const sub = N.addNotificationReceivedListener(cb);
@@ -113,7 +183,9 @@ export function addNotificationReceivedListener(cb: (n: any) => void): (() => vo
   }
 }
 
-export function addNotificationResponseListener(cb: (r: any) => void): (() => void) | null {
+export function addNotificationResponseListener(
+  cb: (r: any) => void
+): (() => void) | null {
   if (isExpoGo) return null;
   try {
     const sub = N.addNotificationResponseReceivedListener(cb);
