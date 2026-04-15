@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Linking, ActivityIndicator, Alert, Platform, Modal, ScrollView, TextInput, ActionSheetIOS } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { getMyOrders, getFacilityOrders, updateOrderStatus, Order, STATUS_CONFIG, getFacilityStages, FacilityStage, createFacilityStage, deleteFacilityStage, reorderFacilityStages } from '../../lib/api';
+import { getMyOrders, getFacilityOrders, updateOrderStatus, updateOrderTotal, Order, STATUS_CONFIG, getFacilityStages, FacilityStage, createFacilityStage, deleteFacilityStage, reorderFacilityStages, updateItemPrice } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function OrdersScreen() {
@@ -23,6 +23,9 @@ export default function OrdersScreen() {
   const [nextStageModal, setNextStageModal] = useState<Order | null>(null);
   const [reorderStageModal, setReorderStageModal] = useState<boolean>(false);
   const [localFacilityStages, setLocalFacilityStages] = useState<FacilityStage[]>([]);
+  // Facility: manual total amount
+  const [totalModal, setTotalModal] = useState<Order | null>(null);
+  const [totalInput, setTotalInput] = useState<string>('');
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -106,6 +109,86 @@ export default function OrdersScreen() {
          await loadOrders();
       } catch (e: any) { Alert.alert("Xato", e.message); } 
       finally { setUpdatingId(null); }
+  };
+
+  /**
+   * Xaritada ochish — ActionSheet (iOS) yoki Alert (Android) orqali
+   * Google Maps, Yandex Maps, 2GIS ni tanlaydi.
+   * Koordinata mavjud bo'lsa undan, bo'lmasa manzil matni bilan ishlaydi.
+   */
+  const openMapChoice = (order: Order) => {
+    const customer = order.customer;
+    if (!customer) return;
+
+    const loc = (customer as any).location;
+    let lat: number | null = null;
+    let lng: number | null = null;
+
+    if (loc) {
+      if (typeof loc === 'object' && loc.lat && loc.lng) {
+        lat = Number(loc.lat);
+        lng = Number(loc.lng);
+      } else if (typeof loc === 'string' && loc.includes(',')) {
+        const parts = loc.split(',');
+        lat = Number(parts[0]);
+        lng = Number(parts[1]);
+      }
+    }
+
+    const address = customer.address || customer.fullName || 'Manzil';
+    const encodedAddress = encodeURIComponent(address);
+
+    const urls = {
+      google: lat && lng
+        ? `https://maps.google.com/?q=${lat},${lng}`
+        : `https://maps.google.com/?q=${encodedAddress}`,
+      yandex: lat && lng
+        ? `yandexmaps://maps.yandex.com/?pt=${lng},${lat}&z=16&l=map`
+        : `yandexmaps://maps.yandex.com/?text=${encodedAddress}`,
+      yandexWeb: lat && lng
+        ? `https://yandex.uz/maps/?ll=${lng},${lat}&z=16&mode=whatshere`
+        : `https://yandex.uz/maps/?text=${encodedAddress}`,
+      twogis: lat && lng
+        ? `dgis://2gis.ru/routeSearch/rsType/car/to/${lng},${lat}`
+        : `https://2gis.uz/search/${encodedAddress}`,
+    };
+
+    const openUrl = async (url: string, fallback?: string) => {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        Linking.openURL(url);
+      } else if (fallback) {
+        Linking.openURL(fallback);
+      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `📍 ${address}`,
+          message: 'Qaysi xarita dasturida ochmoqchisiz?',
+          options: ['Bekor qilish', '🗺 Google Maps', '🟡 Yandex Maps', '🏙 2GIS'],
+          cancelButtonIndex: 0,
+        },
+        (btnIdx) => {
+          if (btnIdx === 1) openUrl(urls.google);
+          if (btnIdx === 2) openUrl(urls.yandex, urls.yandexWeb);
+          if (btnIdx === 3) openUrl(urls.twogis, `https://2gis.uz/search/${encodedAddress}`);
+        },
+      );
+    } else {
+      // Android — Alert bilan
+      Alert.alert(
+        `📍 ${address}`,
+        'Qaysi xarita dasturida ochmoqchisiz?',
+        [
+          { text: 'Bekor qilish', style: 'cancel' },
+          { text: '🗺 Google Maps', onPress: () => openUrl(urls.google) },
+          { text: '🟡 Yandex Maps', onPress: () => openUrl(urls.yandex, urls.yandexWeb) },
+          { text: '🏙 2GIS', onPress: () => openUrl(urls.twogis, `https://2gis.uz/search/${encodedAddress}`) },
+        ],
+      );
+    }
   };
 
   if (loading) {
@@ -454,7 +537,7 @@ export default function OrdersScreen() {
                               <Text style={{ color: '#a1a1aa', fontSize: 14, marginTop: 4, fontWeight: '500' }}>{selectedOrder.customer?.phone1}</Text>
                            </View>
 
-                           {user?.appRole !== 'FACILITY' && selectedOrder.customer && (
+                           {selectedOrder.customer && (
                               <View style={{ flexDirection: 'row', gap: 12 }}>
                                  <TouchableOpacity 
                                     style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center' }}
@@ -464,7 +547,7 @@ export default function OrdersScreen() {
                                  </TouchableOpacity>
                                  <TouchableOpacity 
                                     style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(56, 189, 248, 0.1)', justifyContent: 'center', alignItems: 'center' }}
-                                    onPress={() => Linking.openURL(`https://yandex.uz/maps/?text=${selectedOrder.customer!.address!}`)}
+                                    onPress={() => openMapChoice(selectedOrder)}
                                  >
                                     <Ionicons name="navigate" size={20} color="#38bdf8" />
                                  </TouchableOpacity>
@@ -537,16 +620,29 @@ export default function OrdersScreen() {
                      <View style={{ height: 24 }} />
                      
                      {user?.appRole === 'FACILITY' ? (
-                        <TouchableOpacity 
-                          style={styles.mainBtn} 
-                          activeOpacity={0.8} 
-                          onPress={() => {
-                             handleAutoNextStage(selectedOrder.id, selectedOrder.status, (selectedOrder as any).facilityStage?.id || null);
-                             setSelectedOrder(null);
-                          }}
-                        >
-                          {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>Keyingi bo'limga o'tkazish ➡️</Text>}
-                        </TouchableOpacity>
+                        <>
+                           <TouchableOpacity
+                             style={[styles.mainBtn, { backgroundColor: '#f59e0b', marginBottom: 10 }]}
+                             activeOpacity={0.8}
+                             onPress={() => {
+                               setTotalInput(String(selectedOrder.totalAmount || ''));
+                               setTotalModal(selectedOrder);
+                             }}
+                           >
+                             <Text style={[styles.mainBtnText, { color: '#1c1917' }]}>💰 Summa Belgilash</Text>
+                           </TouchableOpacity>
+
+                           <TouchableOpacity 
+                             style={styles.mainBtn} 
+                             activeOpacity={0.8} 
+                             onPress={() => {
+                                handleAutoNextStage(selectedOrder.id, selectedOrder.status, (selectedOrder as any).facilityStage?.id || null);
+                                setSelectedOrder(null);
+                             }}
+                           >
+                             {updatingId === selectedOrder.id ? <ActivityIndicator color="#09090b" /> : <Text style={styles.mainBtnText}>Keyingi bo'limga o'tkazish ➡️</Text>}
+                           </TouchableOpacity>
+                        </>
                      ) : (
                         STATUS_CONFIG[selectedOrder.status]?.next && (
                            <TouchableOpacity 
@@ -672,6 +768,80 @@ export default function OrdersScreen() {
                </TouchableOpacity>
             </View>
          </View>
+      </Modal>
+
+    {/* SEX HODIMI: SUMMA BELGILASH MODAL */}
+      <Modal visible={!!totalModal} transparent animationType="slide">
+        {totalModal && (
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { height: 'auto', paddingBottom: 40 }]}>
+              <Text style={styles.modalTitle}>💰 Summa Belgilash</Text>
+              <Text style={{ color: '#a1a1aa', marginTop: 8, marginBottom: 20, lineHeight: 20, fontSize: 14 }}>
+                Gilamni o'lchab, tekshirib bo'lgandan so'ng buyurtma uchun jami summani kiriting.
+                Bu summa mijoz to'laydigan narx hisoblanadi.
+              </Text>
+
+              <View style={styles.mRow}>
+                <Text style={styles.mLabel}>Buyurtma:</Text>
+                <Text style={styles.mValue}>#{totalModal.id.substring(0, 8)}</Text>
+              </View>
+              <View style={styles.mRow}>
+                <Text style={styles.mLabel}>Hozirgi summa:</Text>
+                <Text style={[styles.mValue, { color: '#10b981' }]}>
+                  {Number(totalModal.totalAmount || 0).toLocaleString()} so'm
+                </Text>
+              </View>
+
+              <View style={{ marginTop: 16, marginBottom: 28 }}>
+                <Text style={{ color: '#d4d4d8', fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Yangi Jami Summa</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#27272a', borderRadius: 16, borderWidth: 1, borderColor: '#f59e0b', paddingHorizontal: 16 }}>
+                  <Text style={{ fontSize: 24, fontWeight: '800', color: '#f59e0b', marginRight: 8 }}>₩</Text>
+                  <TextInput
+                    style={{ flex: 1, color: '#fff', fontSize: 26, fontWeight: '800', paddingVertical: 16 }}
+                    placeholder="0"
+                    placeholderTextColor="#52525b"
+                    keyboardType="numeric"
+                    value={totalInput}
+                    onChangeText={setTotalInput}
+                    autoFocus
+                  />
+                  <Text style={{ color: '#71717a', fontSize: 16, fontWeight: '700' }}>so'm</Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  style={[styles.mainBtn, { backgroundColor: '#3f3f46', flex: 1, height: 52 }]}
+                  onPress={() => { setTotalModal(null); setTotalInput(''); }}
+                >
+                  <Text style={[styles.mainBtnText, { color: '#fff' }]}>Bekor qilish</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.mainBtn, { flex: 1.5, height: 52, backgroundColor: '#f59e0b' }]}
+                  onPress={async () => {
+                    const num = Number(totalInput);
+                    if (isNaN(num) || num < 0) {
+                      Alert.alert('Xatolik', 'To\'g\'ri summa kiriting');
+                      return;
+                    }
+                    try {
+                      await updateOrderTotal(totalModal.id, num);
+                      setTotalModal(null);
+                      setTotalInput('');
+                      setSelectedOrder(null);
+                      await loadOrders();
+                      Alert.alert('✅ Saqlandi', `Jami summa: ${num.toLocaleString()} so'm`);
+                    } catch (e: any) {
+                      Alert.alert('Xatolik', e.message || 'Summa saqlanmadi');
+                    }
+                  }}
+                >
+                  <Text style={[styles.mainBtnText, { color: '#1c1917' }]}>Saqlash</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </Modal>
 
     </View>

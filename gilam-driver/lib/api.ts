@@ -238,6 +238,17 @@ export async function updateItemPrice(itemId: string, price: number): Promise<an
   });
 }
 
+/**
+ * Sex hodimi: o'lchab tekshirganidan keyin butun buyurtma uchun
+ * jami summani kiritadi (totalAmount).
+ */
+export async function updateOrderTotal(orderId: string, totalAmount: number): Promise<any> {
+  return request<any>(`/orders/${orderId}/total`, {
+    method: 'PATCH',
+    body: JSON.stringify({ totalAmount }),
+  });
+}
+
 export async function getDriverCompletedOrders(driverId: string): Promise<Order[]> {
   return request<Order[]>(`/orders/driver/${driverId}/history`);
 }
