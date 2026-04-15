@@ -76,6 +76,7 @@ export default function RootLayout() {
     unsub2.current = addNotificationResponseListener((response) => {
       const data = response?.notification?.request?.content?.data || {};
 
+      // 💬 Chat xabari → chat ekraniga
       if (data.type === 'chat' && data.senderId) {
         try {
           router.push({
@@ -86,10 +87,16 @@ export default function RootLayout() {
             },
           });
         } catch (e) {
-          console.warn('[Push] Navigate error:', e);
+          console.warn('[Push] Navigate chat error:', e);
         }
       }
 
+      // 🆕 Yangi buyurtma yoki status o'zgarishi → asosiy ekran
+      if (data.type === 'new_order' || data.type === 'order_status') {
+        try { router.push('/'); } catch (_) {}
+      }
+
+      // 📍 Lokatsiya → asosiy ekran
       if (data.type === 'customer_location') {
         try { router.push('/'); } catch (_) {}
       }
