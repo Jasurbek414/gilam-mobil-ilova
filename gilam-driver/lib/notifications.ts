@@ -9,17 +9,34 @@ export const isExpoGo = Constants.appOwnership === 'expo';
 import * as N from 'expo-notifications';
 
 // ─── Foreground handler ───────────────────────────────────────────────────────
+// Bu handler ilova OCHIQ bo'lganda (foreground) notification ko'rsatish uchun
+// MUHIM: Bu bo'lmasa ilova ochiq bo'lganda notification KORINMAYDI (Android)
 export function setupForegroundNotificationHandler() {
   if (isExpoGo) return;
   try {
     N.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
+        shouldShowAlert: true,   // ✓ Alert (tepadan tushuvchi banner)
+        shouldPlaySound: true,   // ✓ Ovoz
+        shouldSetBadge: true,    // ✓ Badge (ilovada raqam)
       }),
     });
-  } catch (_) {}
+    console.log('[Push] ✅ Foreground notification handler o\'rnatildi');
+  } catch (e) {
+    console.warn('[Push] Foreground handler xato:', e);
+  }
+}
+
+// ─── Ilova yopiq bo'lganda kelgan notification ni olish ──────────────────────
+// Foydalanuvchi bildirishnomaga bosib ilovani ochganda, bu funksiya
+// qaysi notification bilan ochilganini qaytaradi
+export async function getLastNotificationResponse() {
+  if (isExpoGo) return null;
+  try {
+    return await N.getLastNotificationResponseAsync();
+  } catch {
+    return null;
+  }
 }
 
 // ─── Android notification channels ───────────────────────────────────────────

@@ -9,6 +9,7 @@ import {
   addNotificationReceivedListener,
   addNotificationResponseListener,
   ensureNotificationPermission,
+  getLastNotificationResponse,
   isExpoGo,
 } from '../lib/notifications';
 
@@ -54,6 +55,23 @@ export default function RootLayout() {
             await ensureNotificationPermission();
             // Token ni backendga saqlash
             await syncPushTokenToBackend();
+          }
+        }
+
+        // Ilova notification orqali OCHILGAN bo'lsa, to'g'ri sahifaga yo'nalt
+        if (!isExpoGo) {
+          const lastResponse = await getLastNotificationResponse();
+          if (lastResponse) {
+            const data = lastResponse.notification?.request?.content?.data || {};
+            console.log('[Push] Ilova notification orqali ochildi, type:', data.type);
+            if (data.type === 'chat' && data.senderId) {
+              router.push({
+                pathname: '/chat',
+                params: { operatorId: data.senderId, companyId: data.companyId || '' },
+              });
+            } else if (data.type === 'new_order' || data.type === 'order_status') {
+              router.push('/');
+            }
           }
         }
       } catch (e) {
