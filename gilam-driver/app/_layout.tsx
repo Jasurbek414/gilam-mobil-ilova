@@ -62,12 +62,12 @@ export default function RootLayout() {
         if (!isExpoGo) {
           const lastResponse = await getLastNotificationResponse();
           if (lastResponse) {
-            const data = lastResponse.notification?.request?.content?.data || {};
+            const data = (lastResponse.notification?.request?.content?.data || {}) as Record<string, string>;
             console.log('[Push] Ilova notification orqali ochildi, type:', data.type);
             if (data.type === 'chat' && data.senderId) {
               router.push({
                 pathname: '/chat',
-                params: { operatorId: data.senderId, companyId: data.companyId || '' },
+                params: { operatorId: String(data.senderId), companyId: String(data.companyId || '') },
               });
             } else if (data.type === 'new_order' || data.type === 'order_status') {
               router.push('/');
