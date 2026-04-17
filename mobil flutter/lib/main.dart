@@ -1,19 +1,23 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'core/api.dart';
 import 'core/theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-// Background message handler (must be top-level function)
+// Top-level background handler
+@pragma('vm:entry-point')
 Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
-final FlutterLocalNotificationsPlugin _localNotifs = FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin _localNotifs =
+    FlutterLocalNotificationsPlugin();
 
 Future<void> _setupLocalNotifications() async {
   const AndroidInitializationSettings androidSettings =
@@ -25,27 +29,28 @@ Future<void> _setupLocalNotifications() async {
     onDidReceiveNotificationResponse: (details) {},
   );
 
-  // Create notification channels
-  const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
-    'chat_messages',
-    '💬 Chat xabarlari',
-    importance: Importance.max,
-    playSound: true,
-    enableVibration: true,
-    showBadge: true,
-  );
-  const AndroidNotificationChannel defaultChannel = AndroidNotificationChannel(
-    'default',
-    'Bildirishnomalar',
-    importance: Importance.max,
-    playSound: true,
-    enableVibration: true,
-    showBadge: true,
-  );
-  await _localNotifs.resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(chatChannel);
-  await _localNotifs.resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(defaultChannel);
+  // Create high-priority channels
+  for (final ch in [
+    const AndroidNotificationChannel(
+      'default', 'Bildirishnomalar',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    ),
+    const AndroidNotificationChannel(
+      'chat_messages', '💬 Chat xabarlari',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    ),
+  ]) {
+    await _localNotifs
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(ch);
+  }
 }
 
 void _showLocalNotification(RemoteMessage message) {
@@ -63,6 +68,7 @@ void _showLocalNotification(RemoteMessage message) {
         importance: Importance.max,
         priority: Priority.high,
         playSound: true,
+        icon: '@mipmap/ic_launcher',
       ),
     ),
   );
@@ -71,11 +77,9 @@ void _showLocalNotification(RemoteMessage message) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
   await _setupLocalNotifications();
-
   runApp(const GilamDriverApp());
 }
 
@@ -99,47 +103,65 @@ class _GilamDriverAppState extends State<GilamDriverApp> {
     final token = await getToken();
     if (token != null) {
       final saved = await getSavedUser();
-      setState(() => _user = saved);
-    }
-
-    // FCM setup after login
-    if (_user != null) {
-      await _registerFcm();
+      if (mounted) setState(() => _user = saved);
     }
 
     setState(() => _loading = false);
 
-    // Foreground messages
-    FirebaseMessaging.onMessage.listen((message) {
-      _showLocalNotification(message);
-    });
+    // Listen foreground FCM
+    FirebaseMessaging.onMessage.listen(_showLocalNotification);
+
+    // If already logged in → register FCM
+    if (_user != null) {
+      await _registerFcm();
+    }
   }
 
+  // ── FCM Registration ────────────────────────────────────────────────────────
   Future<void> _registerFcm() async {
     try {
+      // Android 13+ — runtime notification permission
+      if (Platform.isAndroid) {
+        final status = await Permission.notification.status;
+        debugPrint('[FCM] Notification permission status: $status');
+        if (!status.isGranted) {
+          final result = await Permission.notification.request();
+          debugPrint('[FCM] Notification permission result: $result');
+          if (!result.isGranted) {
+            debugPrint('[FCM] ⚠️ Ruxsat berilmadi — token olinmaydi');
+            return;
+          }
+        }
+      }
+
       final messaging = FirebaseMessaging.instance;
 
-      // Request permission
+      // iOS permission (Android 13+ already handled above)
       final settings = await messaging.requestPermission(
         alert: true, badge: true, sound: true,
         announcement: false, carPlay: false,
         criticalAlert: false, provisional: false,
       );
+      debugPrint('[FCM] Auth status: ${settings.authorizationStatus}');
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional) {
-        final fcmToken = await messaging.getToken();
-        if (fcmToken != null) {
-          debugPrint('[FCM] Token: ${fcmToken.substring(0, 20)}...');
-          await updatePushToken(fcmToken);
-          debugPrint('[FCM] ✅ Token backendga saqlandi');
-        }
-
-        // Refresh token
-        messaging.onTokenRefresh.listen((newToken) async {
-          await updatePushToken(newToken);
-        });
+      // Get FCM token
+      final fcmToken = await messaging.getToken();
+      if (fcmToken == null) {
+        debugPrint('[FCM] ❌ Token null — Google Play Services mavjudmi?');
+        return;
       }
+
+      debugPrint('[FCM] ✅ Token: ${fcmToken.substring(0, 30)}...');
+
+      // Save to backend
+      await updatePushToken(fcmToken);
+      debugPrint('[FCM] ✅ Token backendga saqlandi!');
+
+      // Auto-refresh
+      messaging.onTokenRefresh.listen((newToken) async {
+        debugPrint('[FCM] 🔄 Token yangilandi');
+        await updatePushToken(newToken);
+      });
     } catch (e) {
       debugPrint('[FCM] ❌ Error: $e');
     }
@@ -147,6 +169,7 @@ class _GilamDriverAppState extends State<GilamDriverApp> {
 
   void _handleLogin(Map<String, dynamic> user) {
     setState(() => _user = user);
+    // Register FCM after login
     _registerFcm();
   }
 
@@ -182,7 +205,14 @@ class _SplashScreen extends StatelessWidget {
           children: [
             Icon(Icons.directions_car, size: 64, color: kPrimary),
             SizedBox(height: 24),
-            Text('Gilam Driver', style: TextStyle(color: kTextPrimary, fontSize: 24, fontWeight: FontWeight.w900)),
+            Text(
+              'Gilam Driver',
+              style: TextStyle(
+                color: kTextPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             SizedBox(height: 24),
             CircularProgressIndicator(color: kPrimary),
           ],
