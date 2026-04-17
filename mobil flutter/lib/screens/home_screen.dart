@@ -13,42 +13,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  late final TabController _tabCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
-    _tabCtrl.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
-  }
+  int _tab = 0; // 0=Buyurtmalar, 1=Profil
+  // Chat is pushed as a route, not a tab
 
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
     final isFac = user['appRole'] == 'FACILITY';
     final role = isFac ? 'Sex xodimi' : 'Haydovchi';
-    final idx = _tabCtrl.index;
+
+    final pages = [
+      OrdersPage(user: user),
+      ProfileScreen(user: user, onLogout: widget.onLogout),
+    ];
 
     return Scaffold(
       backgroundColor: kBackground,
       appBar: _buildAppBar(role, isFac),
-      // TabBarView keeps pages alive — socket won't disconnect on tab switch
-      body: TabBarView(
-        controller: _tabCtrl,
-        physics: const NeverScrollableScrollPhysics(), // swipe disabled for UX
-        children: [
-          OrdersPage(user: user),
-          ChatPage(currentUser: user),
-          ProfileScreen(user: user, onLogout: widget.onLogout),
-        ],
-      ),
-      bottomNavigationBar: _buildNav(idx),
+      body: IndexedStack(index: _tab, children: pages),
+      bottomNavigationBar: _buildNav(),
     );
   }
 
@@ -95,51 +78,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildNav(int idx) {
+  void _openChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatPage(currentUser: widget.user),
+      ),
+    );
+  }
+
+  Widget _buildNav() {
     final items = [
-      (Icons.list_alt_outlined, Icons.list_alt_rounded, 'Buyurtmalar'),
-      (Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Operator'),
-      (Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
+      (Icons.list_alt_outlined, Icons.list_alt_rounded, 'Buyurtmalar', false),
+      (Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Operator', true),
+      (Icons.person_outline_rounded, Icons.person_rounded, 'Profil', false),
     ];
+    const int chatIdx = 1;
 
     return Container(
       decoration: BoxDecoration(
         color: kSurface,
         border: Border(top: BorderSide(color: kSurface2, width: 1)),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 10, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 62,
+          height: 64,
           child: Row(
             children: List.generate(items.length, (i) {
-              final sel = idx == i;
+              final isChat = i == chatIdx;
+              final sel = !isChat && _getTabIndex(i) == _tab;
               final item = items[i];
+
               return Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => _tabCtrl.animateTo(i),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: sel ? kPrimary.withAlpha(25) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(sel ? item.$2 : item.$1,
-                            color: sel ? kPrimary : kTextMuted, size: 24),
+                  onTap: () {
+                    if (isChat) {
+                      _openChat();
+                    } else {
+                      setState(() => _tab = _getTabIndex(i));
+                    }
+                  },
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: sel ? kPrimary.withAlpha(25) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      const SizedBox(height: 2),
-                      Text(item.$3,
-                          style: TextStyle(
-                            color: sel ? kPrimary : kTextMuted,
-                            fontSize: 11,
-                            fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                          )),
-                    ],
-                  ),
+                      child: Icon(
+                        sel ? item.$2 : item.$1,
+                        color: isChat ? kPrimary.withAlpha(180) : (sel ? kPrimary : kTextMuted),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(item.$3, style: TextStyle(
+                      color: isChat ? kPrimary.withAlpha(180) : (sel ? kPrimary : kTextMuted),
+                      fontSize: 11,
+                      fontWeight: sel || isChat ? FontWeight.w700 : FontWeight.w500,
+                    )),
+                  ]),
                 ),
               );
             }),
@@ -147,5 +148,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  int _getTabIndex(int navIdx) {
+    // navIdx: 0=Buyurtmalar, 1=Operator(chat-push), 2=Profil
+    if (navIdx == 0) return 0;
+    if (navIdx == 2) return 1;
+    return 0;
   }
 }

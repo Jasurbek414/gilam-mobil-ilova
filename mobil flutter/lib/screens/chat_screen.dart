@@ -13,9 +13,7 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
+class _ChatPageState extends State<ChatPage> {
   IO.Socket? _socket;
   List<Map<String, dynamic>> _messages = [];
   Map<String, dynamic>? _operator;
@@ -53,18 +51,20 @@ class _ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin 
     final token = await getToken();
     if (token == null) return;
 
-    // Correct: base URL + namespace via path
+    // polling first → websocket upgrade (Cloudflare proxy compatible)
     _socket = IO.io(
       'https://gilam-api.ecos.uz/chat',
       IO.OptionBuilder()
-          .setTransports(['websocket', 'polling'])
+          .setTransports(['polling', 'websocket'])
           .setPath('/socket.io/')
           .setQuery({'token': token})
           .setExtraHeaders({'authorization': 'Bearer $token'})
           .disableAutoConnect()
-          .setTimeout(10000)
-          .setReconnectionAttempts(5)
-          .setReconnectionDelay(2000)
+          .setTimeout(15000)
+          .enableReconnection()
+          .setReconnectionAttempts(999)
+          .setReconnectionDelay(3000)
+          .setReconnectionDelayMax(10000)
           .build(),
     );
 
@@ -173,7 +173,6 @@ class _ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin 
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required by AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: kBackground,
       appBar: _buildAppBar(),
