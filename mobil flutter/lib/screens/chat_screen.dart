@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/api.dart';
 import '../core/theme.dart';
+import '../core/chat_service.dart';
 
 class ChatPage extends StatefulWidget {
   final Map<String, dynamic> currentUser;
@@ -14,18 +14,15 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
-  IO.Socket? _socket;
+  final _chat = ChatService.instance;
   List<Map<String, dynamic>> _messages = [];
   Map<String, dynamic>? _operator;
   bool _loading = true;
   bool _connected = false;
-  bool _reconnecting = false;
   String _statusText = 'Ulanmoqda...';
   final TextEditingController _ctrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  Timer? _pingTimer;
-  int _reconnectCount = 0;
 
   @override
   void initState() {
@@ -36,10 +33,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _pingTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    _socket?.disconnect();
-    _socket?.dispose();
+    _chat.onNewMessage = null;
+    _chat.onMessageSent = null;
+    _chat.onConnectionChange = null;
     _ctrl.dispose();
     _scrollCtrl.dispose();
     _focusNode.dispose();
@@ -49,21 +46,22 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !_connected) {
-      _connectSocket();
+      _chat.disconnect();
+      _chat.connect();
     }
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
   Future<void> _init() async {
-    // 1. Operator olish
+    // Operator
     try {
       final op = await getSupportContact();
       if (mounted && op != null) setState(() => _operator = op);
     } catch (e) {
-      debugPrint('[Chat] operator error: $e');
+      debugPrint('[Chat] Operator error: $e');
     }
 
-    // 2. Tarix yuklash
+    // Tarix
     if (_operator != null) {
       try {
         final history = await getMessageHistory(_operator!['id']);
@@ -72,120 +70,47 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           _scrollToBottom();
         }
       } catch (e) {
-        debugPrint('[Chat] history error: $e');
+        debugPrint('[Chat] History error: $e');
       }
     }
 
-    // 3. Socket ulanish
-    await _connectSocket();
-    if (mounted) setState(() => _loading = false);
-  }
-
-  // ── Socket ─────────────────────────────────────────────────────────────────
-  Future<void> _connectSocket() async {
-    _pingTimer?.cancel();
-    _socket?.disconnect();
-    _socket?.dispose();
-    _socket = null;
-
-    final token = await getToken();
-    if (token == null) {
-      debugPrint('[Chat] Token yo\'q');
-      if (mounted) setState(() { _loading = false; _statusText = 'Login kerak'; });
-      return;
-    }
-
-    debugPrint('[Chat] Ulanmoqda... (urinish $_reconnectCount)');
-    if (mounted) setState(() { _reconnecting = true; _statusText = 'Ulanmoqda...'; });
-
-    try {
-      _socket = IO.io(
-        'https://gilam-api.ecos.uz/chat',
-        IO.OptionBuilder()
-            .setTransports(['polling'])
-            .setPath('/socket.io/')
-            .setQuery({'token': token})
-            .setExtraHeaders({'authorization': 'Bearer $token'})
-            .setAuth({'token': token})
-            .enableForceNew()
-            .disableAutoConnect()
-            .setTimeout(20000)
-            .enableReconnection()
-            .setReconnectionAttempts(5)
-            .setReconnectionDelay(3000)
-            .build(),
-      );
-
-      _socket!.onConnect((_) {
-        debugPrint('[Chat] ✅ Ulandi!');
-        _reconnectCount = 0;
-        _pingTimer?.cancel();
-        // Keep-alive ping
-        _pingTimer = Timer.periodic(const Duration(seconds: 25), (_) {
-          if (_socket?.connected == true) _socket?.emit('ping');
+    // Chat service callbacks
+    _chat.onConnectionChange = (connected) {
+      if (mounted) {
+        setState(() {
+          _connected = connected;
+          _statusText = connected ? 'Online' : 'Qayta ulanmoqda...';
         });
-        if (mounted) setState(() {
-          _connected = true;
-          _reconnecting = false;
-          _statusText = 'Online';
+      }
+    };
+
+    _chat.onNewMessage = (msg) {
+      // Faqat shu operatordan kelgan xabarlar
+      if (_operator != null && msg['senderId'] == _operator!['id'] && mounted) {
+        setState(() => _messages.add(msg));
+        _scrollToBottom();
+      }
+    };
+
+    _chat.onMessageSent = (confirmed) {
+      if (mounted) {
+        setState(() {
+          final idx = _messages.indexWhere((m) => m['_temp'] == true);
+          if (idx >= 0) _messages[idx] = confirmed;
+          else _messages.add(confirmed);
         });
-      });
+        _scrollToBottom();
+      }
+    };
 
-      _socket!.onDisconnect((reason) {
-        debugPrint('[Chat] Uzildi: $reason');
-        _pingTimer?.cancel();
-        if (mounted) setState(() {
-          _connected = false;
-          _reconnecting = true;
-          _statusText = 'Qayta ulanmoqda...';
-        });
-        // Manual reconnect after delay
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted && !_connected) _connectSocket();
-        });
+    // Ulanish
+    await _chat.connect();
+    if (mounted) {
+      setState(() {
+        _loading = false;
+        _connected = _chat.isConnected;
+        _statusText = _connected ? 'Online' : 'Ulanmoqda...';
       });
-
-      _socket!.onConnectError((err) {
-        debugPrint('[Chat] Ulanish xatosi: $err');
-        _reconnectCount++;
-        if (mounted) setState(() {
-          _connected = false;
-          _reconnecting = _reconnectCount < 10;
-          _statusText = _reconnectCount < 10 ? 'Ulanmoqda...' : 'Oflayn';
-        });
-        if (_reconnectCount < 10) {
-          Future.delayed(Duration(seconds: _reconnectCount * 2 + 3), () {
-            if (mounted && !_connected) _connectSocket();
-          });
-        }
-      });
-
-      _socket!.on('newMessage', (data) {
-        if (data == null) return;
-        final msg = Map<String, dynamic>.from(data as Map);
-        final isFromMe = msg['senderId'] == widget.currentUser['id'];
-        if (!isFromMe && mounted) {
-          setState(() => _messages.add(msg));
-          _scrollToBottom();
-        }
-      });
-
-      _socket!.on('messageSent', (data) {
-        if (data == null) return;
-        final confirmed = Map<String, dynamic>.from(data as Map);
-        if (mounted) {
-          setState(() {
-            final idx = _messages.indexWhere((m) => m['_temp'] == true);
-            if (idx >= 0) _messages[idx] = confirmed;
-            else _messages.add(confirmed);
-          });
-          _scrollToBottom();
-        }
-      });
-
-      _socket!.connect();
-    } catch (e) {
-      debugPrint('[Chat] Socket yaratishda xato: $e');
     }
   }
 
@@ -209,8 +134,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     _focusNode.requestFocus();
     _scrollToBottom();
 
-    if (_connected && _socket != null) {
-      _socket!.emit('sendMessage', {
+    if (_chat.isConnected) {
+      _chat.emit('sendMessage', {
         'recipientId': _operator!['id'],
         'text': text,
         'companyId': widget.currentUser['companyId'],
@@ -284,7 +209,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         ),
       ),
       title: Row(children: [
-        // Avatar
         Container(
           width: 40, height: 40,
           decoration: const BoxDecoration(
@@ -308,17 +232,15 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               width: 7, height: 7,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _connected ? const Color(0xFF22C55E) : (_reconnecting ? Colors.orange : Colors.red),
+                color: _connected ? const Color(0xFF22C55E) : Colors.orange,
               ),
             ),
             const SizedBox(width: 5),
-            Text(
-              _connected ? 'Online' : _statusText,
-              style: TextStyle(
-                color: _connected ? const Color(0xFF22C55E) : (_reconnecting ? Colors.orange : Colors.red),
-                fontSize: 11, fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text(_statusText,
+                style: TextStyle(
+                  color: _connected ? const Color(0xFF22C55E) : Colors.orange,
+                  fontSize: 11, fontWeight: FontWeight.w600,
+                )),
           ]),
         ])),
       ]),
@@ -338,7 +260,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             decoration: BoxDecoration(color: Colors.white.withAlpha(12), shape: BoxShape.circle),
             child: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 19),
           ),
-          onPressed: () { _reconnectCount = 0; _connectSocket(); },
+          onPressed: () {
+            _chat.disconnect();
+            Future.delayed(const Duration(milliseconds: 500), () => _chat.connect());
+          },
         ),
       ],
     );
@@ -347,29 +272,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   Widget _buildBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: (_reconnecting ? Colors.orange : Colors.red).withAlpha(25),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
+      color: Colors.orange.withAlpha(25),
       child: Row(children: [
-        if (_reconnecting)
-          const SizedBox(width: 14, height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange))
-        else
-          const Icon(Icons.wifi_off_rounded, color: Colors.red, size: 16),
+        const SizedBox(width: 14, height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange)),
         const SizedBox(width: 10),
-        Expanded(child: Text(
-          _reconnecting
-              ? 'Serverga ulanmoqda... Xabar HTTP orqali yuborildi'
-              : 'Oflayn — operator bilan bog\'lanib bo\'lmayapti',
-          style: TextStyle(
-            color: _reconnecting ? Colors.orange : Colors.red,
-            fontSize: 11, fontWeight: FontWeight.w600,
-          ),
+        const Expanded(child: Text(
+          'Serverga ulanmoqda... Xabar HTTP orqali yuboriladi',
+          style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.w600),
         )),
-        if (!_reconnecting)
-          GestureDetector(
-            onTap: () { _reconnectCount = 0; _connectSocket(); },
-            child: const Text('Qayta', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.w700)),
-          ),
       ]),
     );
   }
@@ -379,7 +291,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            width: 90, height: 90,
+            width: 88, height: 88,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(colors: [kPrimary.withAlpha(50), const Color(0xFF6366F1).withAlpha(30)]),
@@ -454,7 +366,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               ),
-              onSubmitted: (_) { _send(); },
+              onSubmitted: (_) => _send(),
             ),
           ),
         ),
@@ -474,11 +386,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   : null,
               color: hasText ? null : const Color(0xFF1F2937),
             ),
-            child: Icon(
-              Icons.send_rounded,
-              color: hasText ? Colors.white : const Color(0xFF4B5563),
-              size: 22,
-            ),
+            child: Icon(Icons.send_rounded,
+                color: hasText ? Colors.white : const Color(0xFF4B5563), size: 22),
           ),
         ),
       ]),
@@ -502,7 +411,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           const SizedBox(height: 24),
           const Text('Operator topilmadi', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
-          Text('Kompaniyangizda operator ro\'yxatdan\no\'tmagan bo\'lishi mumkin',
+          Text('Kompaniyangizda operator\nro\'yxatdan o\'tmagan bo\'lishi mumkin',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 14, height: 1.5)),
           const SizedBox(height: 28),
@@ -529,30 +438,27 @@ class _DateLabel extends StatelessWidget {
         final dt = DateTime.parse(iso!).toLocal();
         final now = DateTime.now();
         if (dt.year == now.year && dt.month == now.month && dt.day == now.day) label = 'Bugun';
-        else if (dt.year == now.year && dt.month == now.month && dt.day == now.day - 1) label = 'Kecha';
+        else if (dt.year == now.year && dt.month == now.month && now.day - dt.day == 1) label = 'Kecha';
         else label = '${dt.day.toString().padLeft(2,'0')}.${dt.month.toString().padLeft(2,'0')}.${dt.year}';
       } catch (_) {}
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(children: [
-        Expanded(child: Divider(color: Colors.white.withAlpha(18), thickness: 1)),
+        Expanded(child: Divider(color: Colors.white.withAlpha(18))),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 10),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(10),
-            borderRadius: BorderRadius.circular(20),
-          ),
+          decoration: BoxDecoration(color: Colors.white.withAlpha(10), borderRadius: BorderRadius.circular(20)),
           child: Text(label, style: TextStyle(color: Colors.white.withAlpha(80), fontSize: 11, fontWeight: FontWeight.w600)),
         ),
-        Expanded(child: Divider(color: Colors.white.withAlpha(18), thickness: 1)),
+        Expanded(child: Divider(color: Colors.white.withAlpha(18))),
       ]),
     );
   }
 }
 
-// ── Bubble ────────────────────────────────────────────────────────────────────
+// ── Message Bubble ────────────────────────────────────────────────────────────
 class _Bubble extends StatelessWidget {
   final Map<String, dynamic> msg;
   final bool isMe, isTemp;
@@ -562,24 +468,19 @@ class _Bubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = msg['text'] as String? ?? '';
     final time = _fmt(msg['createdAt'] as String?);
-
     return Padding(
       padding: EdgeInsets.only(
-        bottom: 4,
-        left: isMe ? 56 : 0,
-        right: isMe ? 0 : 56,
+        bottom: 4, left: isMe ? 56 : 0, right: isMe ? 0 : 56,
       ),
       child: Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            gradient: isMe
-                ? const LinearGradient(
-                    colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  )
-                : null,
+            gradient: isMe ? const LinearGradient(
+              colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ) : null,
             color: isMe ? null : const Color(0xFF1F2937),
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(18),
@@ -601,10 +502,7 @@ class _Bubble extends StatelessWidget {
               )),
               const SizedBox(height: 4),
               Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(time, style: TextStyle(
-                  color: Colors.white.withAlpha(isMe ? 160 : 100),
-                  fontSize: 10,
-                )),
+                Text(time, style: TextStyle(color: Colors.white.withAlpha(isMe ? 160 : 100), fontSize: 10)),
                 if (isMe) ...[
                   const SizedBox(width: 4),
                   Icon(
