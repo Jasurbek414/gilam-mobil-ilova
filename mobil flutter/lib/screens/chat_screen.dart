@@ -135,7 +135,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     _scrollToBottom();
 
     if (_chat.isConnected) {
-      _chat.emit('sendMessage', {
+      _chat.send('sendMessage', {
         'recipientId': _operator!['id'],
         'text': text,
         'companyId': widget.currentUser['companyId'],
