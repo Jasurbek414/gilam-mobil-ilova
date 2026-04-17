@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/theme.dart';
+import '../core/constants.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -10,45 +11,76 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tab;
+
+  // ── Finance state ────────────────────────────────────────────────────────
   List<dynamic> _expenses = [];
-  bool _loading = true;
-  String? _modalType; // 'INCOME' | 'EXPENSE' | null
+  bool _loadingExp = true;
+  String? _modalType;
   String? _editingId;
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _amountCtrl = TextEditingController();
   final TextEditingController _commentCtrl = TextEditingController();
   bool _saving = false;
 
+  // ── History state ────────────────────────────────────────────────────────
+  List<dynamic> _history = [];
+  bool _loadingHist = true;
+
+  bool get _isFac => widget.user['appRole'] == 'FACILITY';
+
   @override
   void initState() {
     super.initState();
-    _load();
+    _tab = TabController(length: 2, vsync: this);
+    _tab.addListener(() { if (!_tab.indexIsChanging) setState(() {}); });
+    _loadExpenses();
+    _loadHistory();
   }
 
   @override
   void dispose() {
+    _tab.dispose();
     _titleCtrl.dispose();
     _amountCtrl.dispose();
     _commentCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  // ── Data loading ─────────────────────────────────────────────────────────
+  Future<void> _loadExpenses() async {
     try {
       final data = await getDriverExpenses(widget.user['id']);
-      if (mounted) setState(() { _expenses = data; _loading = false; });
+      if (mounted) setState(() { _expenses = data; _loadingExp = false; });
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _loadingExp = false);
     }
   }
 
+  Future<void> _loadHistory() async {
+    try {
+      final List<dynamic> data;
+      if (_isFac) {
+        data = await getFacilityOrderHistory(widget.user['companyId']);
+      } else {
+        data = await getDriverOrderHistory(widget.user['id']);
+      }
+      if (mounted) setState(() { _history = data; _loadingHist = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingHist = false);
+    }
+  }
+
+  // ── Finance actions ────────────────────────────────────────────────────────
   void _openModal(String type, [Map<String, dynamic>? exp]) {
     _editingId = exp?['id'];
     _titleCtrl.text = exp?['title'] ?? '';
     _amountCtrl.text = exp?['amount']?.toString() ?? '';
-    final rawComment = exp?['comment'] as String? ?? '';
-    _commentCtrl.text = rawComment.replaceFirst(RegExp(r"^(Kirim|Xarajat): Haydovchi mobil ilovasidan qo'shildi\.\s*"), '');
+    final raw = exp?['comment'] as String? ?? '';
+    _commentCtrl.text = raw.replaceFirst(
+        RegExp(r"^(Kirim|Xarajat): Haydovchi mobil ilovasidan qo'shildi\.\s*"), '');
     setState(() => _modalType = type);
   }
 
@@ -59,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty || _amountCtrl.text.trim().isEmpty) {
-      _showSnack('Nom va summani kiriting!', Colors.red.shade900);
+      _snack('Nom va summani kiriting!', Colors.red.shade800);
       return;
     }
     setState(() => _saving = true);
@@ -86,9 +118,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
       _closeModal();
-      await _load();
+      await _loadExpenses();
     } catch (e) {
-      _showSnack(e.toString().replaceFirst('Exception: ', ''), Colors.red.shade900);
+      _snack(e.toString().replaceFirst('Exception: ', ''), Colors.red.shade800);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -102,7 +134,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text("O'chirish", style: TextStyle(color: kTextPrimary, fontWeight: FontWeight.w800)),
         content: Text('"$title" ni o\'chirmoqchimisiz?', style: const TextStyle(color: kTextSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Bekor', style: TextStyle(color: kTextMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Bekor', style: TextStyle(color: kTextMuted))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -112,16 +145,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok != true) return;
-    try {
-      await deleteExpense(id);
-      await _load();
-    } catch (e) {
-      _showSnack(e.toString(), Colors.red.shade900);
+    try { await deleteExpense(id); await _loadExpenses(); } catch (e) {
+      _snack(e.toString(), Colors.red.shade800);
     }
-  }
-
-  void _showSnack(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   Future<void> _confirmLogout() async {
@@ -132,7 +158,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Ishonchingiz komilmi?', style: TextStyle(color: kTextPrimary, fontWeight: FontWeight.w800)),
         content: const Text('Hisobingizdan chiqib ketsangiz buyurtmalar qabul qila olmaysiz.', style: TextStyle(color: kTextSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Bekor', style: TextStyle(color: kTextMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Bekor', style: TextStyle(color: kTextMuted))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -144,38 +171,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (ok == true) widget.onLogout();
   }
 
+  void _snack(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: color, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
-    final name = user['fullName'] ?? 'Foydalanuvchi';
+    final name = user['fullName'] as String? ?? 'Foydalanuvchi';
+    final company = (user['company'] as Map?)?['name'] ?? user['companyId'] ?? '—';
 
     return Stack(
       children: [
         Scaffold(
           backgroundColor: kBackground,
-          body: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: _buildHeader(name, user)),
-              SliverToBoxAdapter(child: _buildInfoCard(user)),
-              SliverToBoxAdapter(child: _buildActionRow()),
-              SliverToBoxAdapter(child: _buildExpensesHeader()),
-              if (_loading)
-                const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: kPrimary))))
-              else if (_expenses.isEmpty)
-                SliverToBoxAdapter(child: _EmptyExpenses())
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => _ExpenseCard(
-                      exp: _expenses[i],
-                      onTap: () => _openModal(_expenses[i]['type'] as String? ?? 'EXPENSE', _expenses[i]),
-                      onDelete: () => _delete(_expenses[i]['id'] as String, _expenses[i]['title'] as String? ?? ''),
-                    ),
-                    childCount: _expenses.length,
-                  ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          body: NestedScrollView(
+            headerSliverBuilder: (_, __) => [
+              SliverToBoxAdapter(child: _buildHeader(name, user, company)),
+              SliverToBoxAdapter(child: _buildStats()),
+              SliverToBoxAdapter(child: _buildTabBar()),
             ],
+            body: TabBarView(
+              controller: _tab,
+              children: [
+                _buildFinanceTab(),
+                _buildHistoryTab(),
+              ],
+            ),
           ),
         ),
         if (_modalType != null)
@@ -193,144 +218,227 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader(String name, Map<String, dynamic> user) {
+  // ── Header ──────────────────────────────────────────────────────────────────
+  Widget _buildHeader(String name, Map<String, dynamic> user, String company) {
     return Container(
-      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 16, 24, 24),
-      child: Stack(
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 90, height: 90,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: kPrimary.withOpacity(0.1), border: Border.all(color: kPrimary.withOpacity(0.3), width: 2)),
-                child: Center(child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 40, color: kPrimary, fontWeight: FontWeight.w900))),
-              ),
-              const SizedBox(height: 12),
-              Text(name, style: const TextStyle(color: kTextPrimary, fontSize: 24, fontWeight: FontWeight.w800)),
-              Text(user['appRole'] == 'FACILITY' ? 'Sex xodimi' : 'Gilam Haydovchisi', style: const TextStyle(color: kTextSecondary, fontSize: 13, letterSpacing: 1)),
-            ],
-          ),
-          Positioned(
-            top: 0, right: 0,
-            child: GestureDetector(
-              onTap: _confirmLogout,
-              child: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withOpacity(0.1)),
-                child: const Icon(Icons.logout, color: Colors.red, size: 22),
-              ),
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 16, 24, 20),
+      child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          GestureDetector(
+            onTap: _confirmLogout,
+            child: Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withAlpha(20)),
+              child: const Icon(Icons.logout_rounded, color: Colors.red, size: 20),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(Map<String, dynamic> user) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(24), border: Border.all(color: kSurface2)),
-      child: Column(
-        children: [
-          _InfoRow(icon: Icons.call, label: 'Aloqa', value: user['phone'] ?? '—'),
-          _InfoRow(icon: Icons.business, label: 'Kompaniya', value: (user['company'] as Map?)?['name'] ?? user['companyId'] ?? '—'),
-          _InfoRow(icon: Icons.fingerprint, label: 'ID Raqam', value: user['id'] ?? '—', isLast: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      child: Row(
-        children: [
-          Expanded(child: _ActionCard(type: 'INCOME', onTap: () => _openModal('INCOME'))),
-          const SizedBox(width: 16),
-          Expanded(child: _ActionCard(type: 'EXPENSE', onTap: () => _openModal('EXPENSE'))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExpensesHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-      child: Row(children: [
-        const Text("Mening o'tkazmalarim", style: TextStyle(color: kTextPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
-        const Spacer(),
-        if (_loading) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: kPrimary)),
-      ]),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  final bool isLast;
-  const _InfoRow({required this.icon, required this.label, required this.value, this.isLast = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: kSurface2))),
-      child: Row(
-        children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: kPrimary, size: 18)),
-          const SizedBox(width: 16),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(color: kTextMuted, fontSize: 12, fontWeight: FontWeight.w600)),
-            Text(value, style: const TextStyle(color: kTextPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final String type;
-  final VoidCallback onTap;
-  const _ActionCard({required this.type, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isIncome = type == 'INCOME';
-    final color = isIncome ? const Color(0xFF3b82f6) : const Color(0xFFef4444);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(24)),
-        child: Column(
-          children: [
-            Container(width: 48, height: 48, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withOpacity(0.15)), child: Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward, color: color, size: 26)),
-            const SizedBox(height: 12),
-            Text(isIncome ? 'Kirim\nqilish' : "Xarajat\nqo'shish", style: const TextStyle(color: kTextPrimary, fontSize: 13, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-          ],
+        ]),
+        const SizedBox(height: 8),
+        Container(
+          width: 88, height: 88,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: kPrimary.withAlpha(25),
+            border: Border.all(color: kPrimary.withAlpha(60), width: 2.5),
+          ),
+          child: Center(child: Text(
+            name.isNotEmpty ? name[0].toUpperCase() : 'U',
+            style: const TextStyle(fontSize: 38, color: kPrimary, fontWeight: FontWeight.w900),
+          )),
         ),
-      ),
-    );
-  }
-}
-
-class _EmptyExpenses extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: kSurface2)),
-      child: const Column(children: [
-        Icon(Icons.receipt_long_outlined, size: 32, color: Color(0xFF27272a)),
-        SizedBox(height: 12),
-        Text("Hali hech narsa kiritmagansiz", style: TextStyle(color: kTextMuted, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 14),
+        Text(name, style: const TextStyle(color: kTextPrimary, fontSize: 22, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(
+          _isFac ? 'Sex xodimi · $company' : 'Haydovchi · $company',
+          style: const TextStyle(color: kTextMuted, fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 16),
+        // Info row
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: kSurface2)),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            _statCell(Icons.call_outlined, user['phone'] ?? '—'),
+            Container(width: 1, height: 32, color: kSurface2),
+            _statCell(Icons.fingerprint, (user['id'] as String? ?? '').substring(0, 8)),
+          ]),
+        ),
       ]),
     );
   }
+
+  Widget _statCell(IconData icon, String text) => Row(children: [
+    Icon(icon, size: 16, color: kTextMuted),
+    const SizedBox(width: 6),
+    Text(text, style: const TextStyle(color: kTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+  ]);
+
+  // ── Stats (income summary) ──────────────────────────────────────────────────
+  Widget _buildStats() {
+    final income = _expenses
+        .where((e) => e['type'] == 'INCOME')
+        .fold<num>(0, (s, e) => s + (num.tryParse(e['amount'].toString()) ?? 0));
+    final expense = _expenses
+        .where((e) => e['type'] == 'EXPENSE')
+        .fold<num>(0, (s, e) => s + (num.tryParse(e['amount'].toString()) ?? 0));
+    final net = income - expense;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      child: Row(children: [
+        _summaryCard("Kirim", income, const Color(0xFF3b82f6)),
+        const SizedBox(width: 10),
+        _summaryCard("Xarajat", expense, const Color(0xFFef4444)),
+        const SizedBox(width: 10),
+        _summaryCard("Sof", net, net >= 0 ? kPrimary : Colors.orange),
+      ]),
+    );
+  }
+
+  Widget _summaryCard(String label, num value, Color color) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      decoration: BoxDecoration(
+        color: color.withAlpha(15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withAlpha(40)),
+      ),
+      child: Column(children: [
+        Text(label, style: TextStyle(color: color.withAlpha(180), fontSize: 11, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text(
+          '${value >= 0 ? '' : '-'}${value.abs().round()} so\'m',
+          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ]),
+    ),
+  );
+
+  // ── Tab bar ─────────────────────────────────────────────────────────────────
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: kSurface2)),
+      child: TabBar(
+        controller: _tab,
+        indicator: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(12)),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: Colors.black,
+        unselectedLabelColor: kTextMuted,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+        tabs: [
+          const Tab(text: '💰 Moliya'),
+          Tab(text: '📋 Tarixi (${_history.length})'),
+        ],
+      ),
+    );
+  }
+
+  // ── Finance tab ──────────────────────────────────────────────────────────────
+  Widget _buildFinanceTab() {
+    return CustomScrollView(slivers: [
+      SliverToBoxAdapter(child: _buildActionRow()),
+      if (_loadingExp)
+        const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: kPrimary)))
+      else if (_expenses.isEmpty)
+        SliverFillRemaining(child: _buildEmpty('Hali pul harakati kiritilmagan', Icons.receipt_long_outlined))
+      else
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => _ExpenseCard(
+                exp: _expenses[i],
+                onTap: () => _openModal(_expenses[i]['type'] as String? ?? 'EXPENSE', _expenses[i]),
+                onDelete: () => _delete(_expenses[i]['id'] as String, _expenses[i]['title'] as String? ?? ''),
+              ),
+              childCount: _expenses.length,
+            ),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _buildActionRow() => Padding(
+    padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+    child: Row(children: [
+      Expanded(child: _ActionBtn(
+        icon: Icons.arrow_downward_rounded, label: 'Kirim\nqilish',
+        color: const Color(0xFF3b82f6), onTap: () => _openModal('INCOME'),
+      )),
+      const SizedBox(width: 12),
+      Expanded(child: _ActionBtn(
+        icon: Icons.arrow_upward_rounded, label: "Xarajat\nqo'shish",
+        color: const Color(0xFFef4444), onTap: () => _openModal('EXPENSE'),
+      )),
+    ]),
+  );
+
+  // ── History tab ──────────────────────────────────────────────────────────────
+  Widget _buildHistoryTab() {
+    if (_loadingHist) {
+      return const Center(child: CircularProgressIndicator(color: kPrimary));
+    }
+    if (_history.isEmpty) {
+      return _buildEmpty('Hali bajarilgan buyurtmalar yo\'q', Icons.history_outlined);
+    }
+    return RefreshIndicator(
+      color: kPrimary,
+      onRefresh: _loadHistory,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+        itemCount: _history.length,
+        itemBuilder: (_, i) => _HistoryCard(order: _history[i]),
+      ),
+    );
+  }
+
+  Widget _buildEmpty(String msg, IconData icon) => Center(
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: kSurface, shape: BoxShape.circle),
+        child: Icon(icon, size: 40, color: kTextMuted),
+      ),
+      const SizedBox(height: 16),
+      Text(msg, style: const TextStyle(color: kTextMuted, fontSize: 14, fontWeight: FontWeight.w600)),
+    ]),
+  );
+}
+
+// ── Sub-widgets ────────────────────────────────────────────────────────────────
+
+class _ActionBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionBtn({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withAlpha(60)),
+      ),
+      child: Column(children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(color: color.withAlpha(25), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+      ]),
+    ),
+  );
 }
 
 class _ExpenseCard extends StatelessWidget {
@@ -345,39 +453,115 @@ class _ExpenseCard extends StatelessWidget {
     String dateStr = '';
     try {
       final dt = DateTime.parse(exp['createdAt']).toLocal();
-      dateStr = '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      dateStr = '${dt.day.toString().padLeft(2,'0')}.${dt.month.toString().padLeft(2,'0')} ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
     } catch (_) {}
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kSurface2)),
-        child: Row(children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(exp['title'] ?? '', style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14)),
-            Text(dateStr, style: const TextStyle(color: kTextMuted, fontSize: 11)),
-          ])),
-          Text('${isIncome ? '+ ' : '- '}${exp['amount']} so\'m', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14)),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: onDelete,
-            child: Container(width: 36, height: 36, decoration: BoxDecoration(color: kSurface2, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.delete_outline, size: 18, color: kTextMuted)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: kSurface2)),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(color: color.withAlpha(20), shape: BoxShape.circle),
+          child: Icon(isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(exp['title'] ?? '', style: const TextStyle(color: kTextPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(dateStr, style: const TextStyle(color: kTextMuted, fontSize: 11)),
+        ])),
+        Text(
+          '${isIncome ? '+' : '-'} ${exp['amount']} so\'m',
+          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: onDelete,
+          child: Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(color: kSurface2, borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.delete_outline, size: 17, color: kTextMuted),
           ),
-        ]),
-      ),
+        ),
+      ]),
     );
   }
 }
 
+class _HistoryCard extends StatelessWidget {
+  final Map<String, dynamic> order;
+  const _HistoryCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final config = statusConfig[order['status']] ?? {'label': order['status'], 'emoji': '📦', 'color': 0xFF71717a};
+    final customer = order['customer'] as Map<String, dynamic>?;
+    final items = order['items'] as List?;
+    final amount = order['totalAmount'];
+    String dateStr = '';
+    try {
+      final dt = DateTime.parse(order['updatedAt'] ?? order['createdAt']).toLocal();
+      dateStr = '${dt.day.toString().padLeft(2,'0')}.${dt.month.toString().padLeft(2,'0')}.${dt.year} ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+    } catch (_) {}
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kSurface2),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(
+            customer?['fullName'] ?? "Noma'lum",
+            style: const TextStyle(color: kTextPrimary, fontWeight: FontWeight.w800, fontSize: 14),
+          )),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: Color(config['color'] as int).withAlpha(30),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('${config['emoji']} ${config['label']}',
+                style: TextStyle(color: Color(config['color'] as int), fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        if (customer?['address'] != null) ...[
+          const SizedBox(height: 5),
+          Row(children: [
+            const Icon(Icons.location_on_outlined, size: 12, color: kTextMuted),
+            const SizedBox(width: 4),
+            Expanded(child: Text(customer!['address'], style: const TextStyle(color: kTextMuted, fontSize: 12), overflow: TextOverflow.ellipsis)),
+          ]),
+        ],
+        const SizedBox(height: 8),
+        Row(children: [
+          const Icon(Icons.inventory_2_outlined, size: 12, color: kTextMuted),
+          const SizedBox(width: 4),
+          Text('${items?.length ?? 0} ta mahsulot', style: const TextStyle(color: kTextMuted, fontSize: 12)),
+          const Spacer(),
+          if (amount != null && amount != 0)
+            Text('${amount} so\'m', style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 13)),
+        ]),
+        if (dateStr.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(dateStr, style: const TextStyle(color: kTextMuted, fontSize: 11)),
+        ],
+      ]),
+    );
+  }
+}
+
+// ── Expense Modal ──────────────────────────────────────────────────────────────
 class _ExpenseModal extends StatelessWidget {
   final String type;
   final String? editingId;
   final TextEditingController titleCtrl, amountCtrl, commentCtrl;
   final bool saving;
   final VoidCallback onClose, onSave;
-
   const _ExpenseModal({
     required this.type, this.editingId,
     required this.titleCtrl, required this.amountCtrl, required this.commentCtrl,
@@ -387,57 +571,62 @@ class _ExpenseModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = type == 'INCOME';
+    final color = isIncome ? const Color(0xFF3b82f6) : const Color(0xFFef4444);
     return GestureDetector(
       onTap: onClose,
       child: Container(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withAlpha(150),
         child: GestureDetector(
           onTap: () {},
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Container(
               padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: kSurface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border(top: BorderSide(color: kSurface2)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(width: 40, height: 4, decoration: BoxDecoration(color: kSurface2, borderRadius: BorderRadius.circular(2))),
-                  const SizedBox(height: 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: kSurface2, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 18),
+                Row(children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(color: color.withAlpha(20), shape: BoxShape.circle),
+                    child: Icon(isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: color, size: 22),
+                  ),
+                  const SizedBox(width: 12),
                   Text(
                     editingId != null
                         ? (isIncome ? 'Kirimni tahrirlash' : 'Xarajatni tahrirlash')
                         : (isIncome ? 'Yangi Kirim' : 'Yangi Xarajat'),
-                    style: const TextStyle(color: kTextPrimary, fontSize: 22, fontWeight: FontWeight.w800),
+                    style: const TextStyle(color: kTextPrimary, fontSize: 20, fontWeight: FontWeight.w800),
                   ),
-                  const SizedBox(height: 20),
-                  _field('Nom', isIncome ? 'Masalan: Mijozdan olindi...' : "Masalan: Yoqilg'i...", titleCtrl),
-                  const SizedBox(height: 12),
-                  _field("Summa (so'm)", '250 000', amountCtrl, isNumber: true),
-                  const SizedBox(height: 12),
-                  _field('Izoh (ixtiyoriy)', 'Shamol bo\'lib qolsin...', commentCtrl, maxLines: 3),
-                  const SizedBox(height: 20),
-                  Row(children: [
-                    Expanded(child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: kSurface2, foregroundColor: kTextPrimary),
-                      onPressed: onClose,
-                      child: const Text('Bekor'),
-                    )),
-                    const SizedBox(width: 12),
-                    Expanded(child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isIncome ? const Color(0xFF3b82f6) : const Color(0xFFef4444),
-                      ),
-                      onPressed: saving ? null : onSave,
-                      child: saving
-                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                          : const Text('Saqlash', style: TextStyle(color: Colors.white)),
-                    )),
-                  ]),
-                ],
-              ),
+                ]),
+                const SizedBox(height: 20),
+                _field('Nom', isIncome ? 'Misol: Mijozdan olindi' : "Misol: Yoqilg'i", titleCtrl),
+                const SizedBox(height: 10),
+                _field("Summa (so'm)", '250 000', amountCtrl, isNumber: true),
+                const SizedBox(height: 10),
+                _field('Izoh (ixtiyoriy)', 'Qo\'shimcha ma\'lumot...', commentCtrl, maxLines: 2),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: kSurface2, foregroundColor: kTextPrimary, minimumSize: const Size(0, 50)),
+                    onPressed: onClose,
+                    child: const Text('Bekor'),
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 2, child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: color, minimumSize: const Size(0, 50)),
+                    onPressed: saving ? null : onSave,
+                    child: saving
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Saqlash', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                  )),
+                ]),
+              ]),
             ),
           ),
         ),
@@ -446,24 +635,21 @@ class _ExpenseModal extends StatelessWidget {
   }
 
   Widget _field(String label, String hint, TextEditingController ctrl, {bool isNumber = false, int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: kTextMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.multiline,
-          maxLines: maxLines,
-          style: const TextStyle(color: kTextPrimary, fontSize: 15, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: hint, hintStyle: const TextStyle(color: kTextMuted),
-            filled: true, fillColor: kSurface2,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: kTextMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+      const SizedBox(height: 6),
+      TextField(
+        controller: ctrl,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.multiline,
+        maxLines: maxLines,
+        style: const TextStyle(color: kTextPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: hint, hintStyle: const TextStyle(color: kTextMuted),
+          filled: true, fillColor: kSurface2,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-      ],
-    );
+      ),
+    ]);
   }
 }

@@ -114,6 +114,14 @@ Future<List<dynamic>> getMyOrders(String userId) async {
   return (await apiRequest('/orders/driver/$userId') as List?) ?? [];
 }
 
+Future<List<dynamic>> getDriverOrderHistory(String userId) async {
+  return (await apiRequest('/orders/driver/$userId/history') as List?) ?? [];
+}
+
+Future<List<dynamic>> getFacilityOrderHistory(String companyId) async {
+  return (await apiRequest('/orders/facility/$companyId/history') as List?) ?? [];
+}
+
 Future<List<dynamic>> getFacilityOrders(String companyId) async {
   return (await apiRequest('/orders/facility/$companyId') as List?) ?? [];
 }
