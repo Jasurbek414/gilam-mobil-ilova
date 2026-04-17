@@ -1,0 +1,5 @@
+backend.log
+backend-err.log
+start-backend.ps1
+.firebase_b64_value.txt
+.firebase_b64.txt
