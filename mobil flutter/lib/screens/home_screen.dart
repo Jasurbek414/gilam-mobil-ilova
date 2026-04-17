@@ -12,26 +12,43 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _tab = 0;
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  late final TabController _tabCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
     final isFac = user['appRole'] == 'FACILITY';
     final role = isFac ? 'Sex xodimi' : 'Haydovchi';
-
-    final pages = [
-      OrdersPage(user: user),
-      ChatPage(currentUser: user),
-      ProfileScreen(user: user, onLogout: widget.onLogout),
-    ];
+    final idx = _tabCtrl.index;
 
     return Scaffold(
       backgroundColor: kBackground,
       appBar: _buildAppBar(role, isFac),
-      body: IndexedStack(index: _tab, children: pages),
-      bottomNavigationBar: _buildNavBar(),
+      // TabBarView keeps pages alive — socket won't disconnect on tab switch
+      body: TabBarView(
+        controller: _tabCtrl,
+        physics: const NeverScrollableScrollPhysics(), // swipe disabled for UX
+        children: [
+          OrdersPage(user: user),
+          ChatPage(currentUser: user),
+          ProfileScreen(user: user, onLogout: widget.onLogout),
+        ],
+      ),
+      bottomNavigationBar: _buildNav(idx),
     );
   }
 
@@ -67,7 +84,8 @@ class _HomeScreenState extends State<HomeScreen> {
             border: Border.all(color: kPrimary.withAlpha(60)),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 7, height: 7, decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle)),
+            Container(width: 7, height: 7,
+                decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle)),
             const SizedBox(width: 6),
             Text(isFac ? 'Sex' : 'Haydovchi',
                 style: const TextStyle(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700)),
@@ -77,11 +95,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNavBar() {
+  Widget _buildNav(int idx) {
     final items = [
-      _NavItem(icon: Icons.list_alt_outlined, activeIcon: Icons.list_alt_rounded, label: 'Buyurtmalar'),
-      _NavItem(icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded, label: 'Operator'),
-      _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profil'),
+      (Icons.list_alt_outlined, Icons.list_alt_rounded, 'Buyurtmalar'),
+      (Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Operator'),
+      (Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
     ];
 
     return Container(
@@ -91,39 +109,37 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 64,
+          height: 62,
           child: Row(
             children: List.generate(items.length, (i) {
-              final selected = _tab == i;
+              final sel = idx == i;
               final item = items[i];
               return Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _tab = i),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: selected ? kPrimary.withAlpha(20) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
+                  onTap: () => _tabCtrl.animateTo(i),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: sel ? kPrimary.withAlpha(25) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(sel ? item.$2 : item.$1,
+                            color: sel ? kPrimary : kTextMuted, size: 24),
                       ),
-                      child: Icon(
-                        selected ? item.activeIcon : item.icon,
-                        color: selected ? kPrimary : kTextMuted,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        color: selected ? kPrimary : kTextMuted,
-                        fontSize: 11,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                  ]),
+                      const SizedBox(height: 2),
+                      Text(item.$3,
+                          style: TextStyle(
+                            color: sel ? kPrimary : kTextMuted,
+                            fontSize: 11,
+                            fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                          )),
+                    ],
+                  ),
                 ),
               );
             }),
@@ -132,10 +148,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
-
-class _NavItem {
-  final IconData icon, activeIcon;
-  final String label;
-  _NavItem({required this.icon, required this.activeIcon, required this.label});
 }

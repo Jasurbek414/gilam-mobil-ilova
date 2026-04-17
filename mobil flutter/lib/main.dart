@@ -10,64 +10,56 @@ import 'core/theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-// Top-level background handler
+// Top-level background handler — must be top-level
 @pragma('vm:entry-point')
 Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  debugPrint('[FCM-BG] Message: ${message.notification?.title}');
 }
 
 final FlutterLocalNotificationsPlugin _localNotifs =
     FlutterLocalNotificationsPlugin();
 
+const String _channelDefault = 'gilam_default';
+const String _channelChat = 'gilam_chat';
+
 Future<void> _setupLocalNotifications() async {
-  const AndroidInitializationSettings androidSettings =
+  const AndroidInitializationSettings android =
       AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initSettings =
-      InitializationSettings(android: androidSettings);
   await _localNotifs.initialize(
-    settings: initSettings,
-    onDidReceiveNotificationResponse: (details) {},
+    settings: const InitializationSettings(android: android),
+    onDidReceiveNotificationResponse: (_) {},
   );
 
-  // Create high-priority channels
-  for (final ch in [
-    const AndroidNotificationChannel(
-      'default', 'Bildirishnomalar',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
-    ),
-    const AndroidNotificationChannel(
-      'chat_messages', '💬 Chat xabarlari',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
-    ),
-  ]) {
-    await _localNotifs
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(ch);
-  }
+  final plugin = _localNotifs
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  await plugin?.createNotificationChannel(const AndroidNotificationChannel(
+    _channelDefault, 'Bildirishnomalar',
+    importance: Importance.max, playSound: true, enableVibration: true,
+  ));
+  await plugin?.createNotificationChannel(const AndroidNotificationChannel(
+    _channelChat, 'Chat xabarlari',
+    importance: Importance.max, playSound: true, enableVibration: true,
+    showBadge: true,
+  ));
 }
 
-void _showLocalNotification(RemoteMessage message) {
-  final n = message.notification;
+void _showNotif(RemoteMessage msg) {
+  final n = msg.notification;
   if (n == null) return;
-  final channelId = message.data['channelId'] as String? ?? 'default';
+  final ch = msg.data['channelId'] as String? ?? _channelDefault;
   _localNotifs.show(
     id: n.hashCode,
     title: n.title,
     body: n.body,
     notificationDetails: NotificationDetails(
       android: AndroidNotificationDetails(
-        channelId,
-        channelId,
+        ch, ch,
         importance: Importance.max,
         priority: Priority.high,
         playSound: true,
+        enableVibration: true,
         icon: '@mipmap/ic_launcher',
       ),
     ),
@@ -77,105 +69,129 @@ void _showLocalNotification(RemoteMessage message) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
-  await _setupLocalNotifications();
-  runApp(const GilamDriverApp());
+  
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+    await _setupLocalNotifications();
+  } catch (e) {
+    debugPrint('[Main] Firebase init error: $e');
+  }
+
+  runApp(const GilamApp());
 }
 
-class GilamDriverApp extends StatefulWidget {
-  const GilamDriverApp({super.key});
+class GilamApp extends StatefulWidget {
+  const GilamApp({super.key});
   @override
-  State<GilamDriverApp> createState() => _GilamDriverAppState();
+  State<GilamApp> createState() => _GilamAppState();
 }
 
-class _GilamDriverAppState extends State<GilamDriverApp> {
+class _GilamAppState extends State<GilamApp> {
   Map<String, dynamic>? _user;
   bool _loading = true;
+  String? _fcmToken;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _boot();
   }
 
-  Future<void> _init() async {
-    final token = await getToken();
-    if (token != null) {
+  Future<void> _boot() async {
+    // Load saved session
+    final jwtToken = await getToken();
+    if (jwtToken != null) {
       final saved = await getSavedUser();
       if (mounted) setState(() => _user = saved);
     }
-
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
 
     // Listen foreground FCM
-    FirebaseMessaging.onMessage.listen(_showLocalNotification);
+    FirebaseMessaging.onMessage.listen(_showNotif);
 
-    // If already logged in → register FCM
+    // Register FCM if already logged in 
     if (_user != null) {
       await _registerFcm();
     }
   }
 
-  // ── FCM Registration ────────────────────────────────────────────────────────
   Future<void> _registerFcm() async {
     try {
-      // Android 13+ — runtime notification permission
+      // Step 1: Android 13+ notification permission
       if (Platform.isAndroid) {
         final status = await Permission.notification.status;
-        debugPrint('[FCM] Notification permission status: $status');
-        if (!status.isGranted) {
+        debugPrint('[FCM] Permission status: $status');
+
+        if (status.isDenied || status.isRestricted) {
           final result = await Permission.notification.request();
-          debugPrint('[FCM] Notification permission result: $result');
+          debugPrint('[FCM] Permission after request: $result');
           if (!result.isGranted) {
-            debugPrint('[FCM] ⚠️ Ruxsat berilmadi — token olinmaydi');
+            debugPrint('[FCM] Permission denied — cannot receive notifications');
             return;
           }
         }
       }
 
-      final messaging = FirebaseMessaging.instance;
+      final fm = FirebaseMessaging.instance;
 
-      // iOS permission (Android 13+ already handled above)
-      final settings = await messaging.requestPermission(
-        alert: true, badge: true, sound: true,
-        announcement: false, carPlay: false,
-        criticalAlert: false, provisional: false,
-      );
-      debugPrint('[FCM] Auth status: ${settings.authorizationStatus}');
+      // Step 2: iOS permission (Android handled above)
+      if (!Platform.isAndroid) {
+        final s = await fm.requestPermission(alert: true, sound: true, badge: true);
+        if (s.authorizationStatus == AuthorizationStatus.denied) return;
+      }
 
-      // Get FCM token
-      final fcmToken = await messaging.getToken();
-      if (fcmToken == null) {
-        debugPrint('[FCM] ❌ Token null — Google Play Services mavjudmi?');
+      // Step 3: Get FCM token
+      String? token;
+      try {
+        token = await fm.getToken().timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            debugPrint('[FCM] getToken() timed out!');
+            return null;
+          },
+        );
+      } catch (e) {
+        debugPrint('[FCM] getToken() error: $e');
         return;
       }
 
-      debugPrint('[FCM] ✅ Token: ${fcmToken.substring(0, 30)}...');
+      if (token == null || token.isEmpty) {
+        debugPrint('[FCM] Token is null/empty — Google Play Services available?');
+        return;
+      }
 
-      // Save to backend
-      await updatePushToken(fcmToken);
-      debugPrint('[FCM] ✅ Token backendga saqlandi!');
+      debugPrint('[FCM] Token obtained: ${token.substring(0, 40)}...');
+      _fcmToken = token;
 
-      // Auto-refresh
-      messaging.onTokenRefresh.listen((newToken) async {
-        debugPrint('[FCM] 🔄 Token yangilandi');
-        await updatePushToken(newToken);
+      // Step 4: Send to backend
+      try {
+        await updatePushToken(token);
+        debugPrint('[FCM] ✅ Token saved to backend!');
+      } catch (e) {
+        debugPrint('[FCM] Failed to save token: $e');
+      }
+
+      // Step 5: Handle token refresh
+      fm.onTokenRefresh.listen((newToken) async {
+        debugPrint('[FCM] Token refreshed');
+        _fcmToken = newToken;
+        try { await updatePushToken(newToken); } catch (_) {}
       });
+
     } catch (e) {
-      debugPrint('[FCM] ❌ Error: $e');
+      debugPrint('[FCM] Unexpected error: $e');
     }
   }
 
   void _handleLogin(Map<String, dynamic> user) {
     setState(() => _user = user);
-    // Register FCM after login
-    _registerFcm();
+    _registerFcm(); // Register FCM after login
   }
 
   Future<void> _handleLogout() async {
     await logout();
-    setState(() => _user = null);
+    setState(() { _user = null; _fcmToken = null; });
   }
 
   @override
@@ -185,7 +201,7 @@ class _GilamDriverAppState extends State<GilamDriverApp> {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: _loading
-          ? const _SplashScreen()
+          ? const _Splash()
           : _user == null
               ? LoginScreen(onLogin: _handleLogin)
               : HomeScreen(user: _user!, onLogout: _handleLogout),
@@ -193,31 +209,26 @@ class _GilamDriverAppState extends State<GilamDriverApp> {
   }
 }
 
-class _SplashScreen extends StatelessWidget {
-  const _SplashScreen();
+class _Splash extends StatelessWidget {
+  const _Splash();
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: kBackground,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.directions_car, size: 64, color: kPrimary),
-            SizedBox(height: 24),
-            Text(
-              'Gilam Driver',
-              style: TextStyle(
-                color: kTextPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            SizedBox(height: 24),
-            CircularProgressIndicator(color: kPrimary),
-          ],
-        ),
+  Widget build(BuildContext context) => const Scaffold(
+    backgroundColor: kBackground,
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.directions_car_filled_rounded, size: 72, color: kPrimary),
+          SizedBox(height: 20),
+          Text('Gilam Driver', style: TextStyle(
+            color: kTextPrimary, fontSize: 26, fontWeight: FontWeight.w900,
+          )),
+          SizedBox(height: 8),
+          Text('Yuklanmoqda...', style: TextStyle(color: kTextMuted)),
+          SizedBox(height: 32),
+          CircularProgressIndicator(color: kPrimary, strokeWidth: 2),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

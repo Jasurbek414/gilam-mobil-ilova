@@ -13,7 +13,9 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   IO.Socket? _socket;
   List<Map<String, dynamic>> _messages = [];
   Map<String, dynamic>? _operator;
@@ -171,6 +173,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required by AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: kBackground,
       appBar: _buildAppBar(),
