@@ -3,3 +3,7 @@ backend-err.log
 start-backend.ps1
 .firebase_b64_value.txt
 .firebase_b64.txt
+b-err.log
+b-out.log
+test-notify.js
+build.log
