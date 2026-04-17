@@ -11,7 +11,7 @@ RUN mkdir -p /root/.gradle/wrapper/dists/gradle-8.14.3-bin && \
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
-RUN npx expo prebuild --clean
+# RUN npx expo prebuild --clean
 
 # Configure Gradle
 RUN echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> android/gradle.properties && \

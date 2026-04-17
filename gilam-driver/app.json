@@ -19,7 +19,10 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Haydovchi lokatsiyasini kuzatish uchun kerak",
-        "UIBackgroundModes": ["remote-notification", "fetch"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -45,7 +48,9 @@
       "expo-secure-store",
       [
         "expo-location",
-        { "locationWhenInUsePermission": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak" }
+        {
+          "locationWhenInUsePermission": "Buyurtmalarni yetkazish uchun joylashuvingiz kerak"
+        }
       ],
       [
         "expo-notifications",
@@ -54,7 +59,9 @@
           "color": "#059669",
           "sounds": []
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ]
   }
 }
