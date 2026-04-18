@@ -25,7 +25,7 @@ const String _channelChat = 'gilam_chat';
 
 Future<void> _setupLocalNotifications() async {
   const AndroidInitializationSettings android =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('ic_notification');
   await _localNotifs.initialize(
     settings: const InitializationSettings(android: android),
     onDidReceiveNotificationResponse: (_) {},
@@ -60,7 +60,8 @@ void _showNotif(RemoteMessage msg) {
         priority: Priority.high,
         playSound: true,
         enableVibration: true,
-        icon: '@mipmap/ic_launcher',
+        icon: 'ic_notification',
+        color: const Color(0xFF10b981), // Emerald/Green accent
       ),
     ),
   );
