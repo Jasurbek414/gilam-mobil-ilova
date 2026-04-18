@@ -11,6 +11,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../core/api.dart';
 import '../core/theme.dart';
+import '../core/chat_service.dart';
 
 class ChatPage extends StatefulWidget {
   final Map<String, dynamic> currentUser;
@@ -18,8 +19,6 @@ class ChatPage extends StatefulWidget {
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
-
-import '../core/chat_service.dart';
 
 class _ChatPageState extends State<ChatPage> {
   // ── State ────────────────────────────────────────────────────────────────────
