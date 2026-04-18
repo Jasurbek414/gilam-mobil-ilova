@@ -220,59 +220,57 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ── Header ──────────────────────────────────────────────────────────────────
   Widget _buildHeader(String name, Map<String, dynamic> user, String company) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 16, 24, 20),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+    return Column(children: [
+      Padding(
+        padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 16, 16, 0),
+        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
           GestureDetector(
             onTap: _confirmLogout,
-            child: Container(
-              width: 42, height: 42,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red.withAlpha(20)),
-              child: const Icon(Icons.logout_rounded, color: Colors.red, size: 20),
-            ),
+            child: Row(children: const [
+              Icon(Icons.logout_rounded, color: kTextMuted, size: 20),
+              SizedBox(width: 6),
+              Text('Chiqish', style: TextStyle(color: kTextMuted, fontSize: 13, fontWeight: FontWeight.w600)),
+            ]),
           ),
         ]),
-        const SizedBox(height: 8),
-        Container(
-          width: 88, height: 88,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: kPrimary.withAlpha(25),
-            border: Border.all(color: kPrimary.withAlpha(60), width: 2.5),
+      ),
+      const SizedBox(height: 10),
+      Container(
+        width: 90, height: 90,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Color(0xFF34D399), Color(0xFF059669)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
-          child: Center(child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : 'U',
-            style: const TextStyle(fontSize: 38, color: kPrimary, fontWeight: FontWeight.w900),
-          )),
         ),
-        const SizedBox(height: 14),
-        Text(name, style: const TextStyle(color: kTextPrimary, fontSize: 22, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 4),
-        Text(
-          _isFac ? 'Sex xodimi · $company' : 'Haydovchi · $company',
-          style: const TextStyle(color: kTextMuted, fontSize: 12, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 16),
-        // Info row
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: kSurface2)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            _statCell(Icons.call_outlined, user['phone'] ?? '—'),
-            Container(width: 1, height: 32, color: kSurface2),
-            _statCell(Icons.fingerprint, (user['id'] as String? ?? '').substring(0, 8)),
-          ]),
-        ),
+        child: Center(child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : 'U',
+          style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w800),
+        )),
+      ),
+      const SizedBox(height: 16),
+      Text(name, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+      const SizedBox(height: 6),
+      Text(
+        _isFac ? 'Sex xodimi · $company' : 'Haydovchi · $company',
+        style: const TextStyle(color: kTextMuted, fontSize: 13, fontWeight: FontWeight.w500),
+      ),
+      const SizedBox(height: 14),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.phone_rounded, size: 14, color: kTextMuted.withAlpha(180)),
+        const SizedBox(width: 6),
+        Text(user['phone'] ?? '—', style: const TextStyle(color: kTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(width: 14),
+        Container(width: 4, height: 4, decoration: const BoxDecoration(color: kTextMuted, shape: BoxShape.circle)),
+        const SizedBox(width: 14),
+        Icon(Icons.fingerprint_rounded, size: 14, color: kTextMuted.withAlpha(180)),
+        const SizedBox(width: 6),
+        Text((user['id'] as String? ?? '').substring(0, 8), style: const TextStyle(color: kTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
       ]),
-    );
+      const SizedBox(height: 24),
+    ]);
   }
-
-  Widget _statCell(IconData icon, String text) => Row(children: [
-    Icon(icon, size: 16, color: kTextMuted),
-    const SizedBox(width: 6),
-    Text(text, style: const TextStyle(color: kTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
-  ]);
 
   // ── Stats (income summary) ──────────────────────────────────────────────────
   Widget _buildStats() {
@@ -285,53 +283,53 @@ class _ProfileScreenState extends State<ProfileScreen>
     final net = income - expense;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-      child: Row(children: [
-        _summaryCard("Kirim", income, const Color(0xFF3b82f6)),
-        const SizedBox(width: 10),
-        _summaryCard("Xarajat", expense, const Color(0xFFef4444)),
-        const SizedBox(width: 10),
-        _summaryCard("Sof", net, net >= 0 ? kPrimary : Colors.orange),
-      ]),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: kSurface,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(children: [
+          _summaryBlock("Kirim", income, const Color(0xFF60A5FA)),
+          Container(width: 1, height: 36, color: kSurface2),
+          _summaryBlock("Xarajat", expense, const Color(0xFFF87171)),
+          Container(width: 1, height: 36, color: kSurface2),
+          _summaryBlock("Sof", net, net >= 0 ? const Color(0xFF34D399) : Colors.orange),
+        ]),
+      ),
     );
   }
 
-  Widget _summaryCard(String label, num value, Color color) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-      decoration: BoxDecoration(
-        color: color.withAlpha(15),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withAlpha(40)),
+  Widget _summaryBlock(String label, num value, Color color) => Expanded(
+    child: Column(children: [
+      Text(label, style: const TextStyle(color: kTextMuted, fontSize: 12, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 6),
+      Text(
+        '${value >= 0 ? '' : '-'}${value.abs().round()}',
+        style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+        overflow: TextOverflow.ellipsis,
       ),
-      child: Column(children: [
-        Text(label, style: TextStyle(color: color.withAlpha(180), fontSize: 11, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(
-          '${value >= 0 ? '' : '-'}${value.abs().round()} so\'m',
-          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ]),
-    ),
+    ]),
   );
 
   // ── Tab bar ─────────────────────────────────────────────────────────────────
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: kSurface2)),
+      margin: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16)),
       child: TabBar(
         controller: _tab,
-        indicator: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(12)),
-        indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
-        labelColor: Colors.black,
+        indicator: BoxDecoration(color: kSurface2, borderRadius: BorderRadius.circular(12)),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: Colors.white,
         unselectedLabelColor: kTextMuted,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
         tabs: [
-          const Tab(text: '💰 Moliya'),
-          Tab(text: '📋 Tarixi (${_history.length})'),
+          const Tab(height: 40, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet_rounded, size: 16), SizedBox(width: 6), Text('Moliya')])),
+          Tab(height: 40, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.history_rounded, size: 16), const SizedBox(width: 6), Text('Tarixi (${_history.length})')])),
         ],
       ),
     );
@@ -363,16 +361,16 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildActionRow() => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+    padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
     child: Row(children: [
       Expanded(child: _ActionBtn(
-        icon: Icons.arrow_downward_rounded, label: 'Kirim\nqilish',
-        color: const Color(0xFF3b82f6), onTap: () => _openModal('INCOME'),
+        icon: Icons.add_circle_outline_rounded, label: 'Kirim qilish',
+        color: const Color(0xFF60A5FA), onTap: () => _openModal('INCOME'),
       )),
       const SizedBox(width: 12),
       Expanded(child: _ActionBtn(
-        icon: Icons.arrow_upward_rounded, label: "Xarajat\nqo'shish",
-        color: const Color(0xFFef4444), onTap: () => _openModal('EXPENSE'),
+        icon: Icons.remove_circle_outline_rounded, label: "Xarajat",
+        color: const Color(0xFFF87171), onTap: () => _openModal('EXPENSE'),
       )),
     ]),
   );
@@ -422,20 +420,15 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      height: 48,
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withAlpha(60)),
+        color: kSurface,
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(color: color.withAlpha(25), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
       ]),
     ),
   );
@@ -458,31 +451,28 @@ class _ExpenseCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: kSurface2)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(16)),
       child: Row(children: [
         Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(color: color.withAlpha(20), shape: BoxShape.circle),
-          child: Icon(isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: color, size: 20),
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: color.withAlpha(25), shape: BoxShape.circle),
+          child: Icon(isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: color, size: 18),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(exp['title'] ?? '', style: const TextStyle(color: kTextPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
-          Text(dateStr, style: const TextStyle(color: kTextMuted, fontSize: 11)),
+          Text(exp['title'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text(dateStr, style: const TextStyle(color: kTextMuted, fontSize: 11, fontWeight: FontWeight.w500)),
         ])),
         Text(
           '${isIncome ? '+' : '-'} ${exp['amount']} so\'m',
-          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13),
+          style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         GestureDetector(
           onTap: onDelete,
-          child: Container(
-            width: 34, height: 34,
-            decoration: BoxDecoration(color: kSurface2, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.delete_outline, size: 17, color: kTextMuted),
-          ),
+          child: const Icon(Icons.delete_outline, size: 18, color: kTextMuted),
         ),
       ]),
     );
@@ -507,11 +497,10 @@ class _HistoryCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: kSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kSurface2),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
