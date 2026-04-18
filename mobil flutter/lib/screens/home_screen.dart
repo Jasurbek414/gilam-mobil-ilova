@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../core/theme.dart';
 import '../core/api.dart';
+import '../core/chat_service.dart';
 import 'orders_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    ChatService.instance.connect();
     if (widget.user['appRole'] != 'FACILITY') {
       _startBackgroundLocationTracker();
     }
@@ -30,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    ChatService.instance.disconnect();
     _locStream?.cancel();
     super.dispose();
   }
