@@ -87,15 +87,30 @@ class GilamApp extends StatefulWidget {
   State<GilamApp> createState() => _GilamAppState();
 }
 
-class _GilamAppState extends State<GilamApp> {
+class _GilamAppState extends State<GilamApp> with WidgetsBindingObserver {
   Map<String, dynamic>? _user;
   bool _loading = true;
   String? _fcmToken;
+  bool _fcmTokenSynced = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _boot();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _user != null && !_fcmTokenSynced) {
+      _registerFcm();
+    }
   }
 
   Future<void> _boot() async {
@@ -167,8 +182,10 @@ class _GilamAppState extends State<GilamApp> {
       // Step 4: Send to backend
       try {
         await updatePushToken(token);
+        _fcmTokenSynced = true;
         debugPrint('[FCM] ✅ Token saved to backend!');
       } catch (e) {
+        _fcmTokenSynced = false;
         debugPrint('[FCM] Failed to save token: $e');
       }
 
@@ -191,7 +208,7 @@ class _GilamAppState extends State<GilamApp> {
 
   Future<void> _handleLogout() async {
     await logout();
-    setState(() { _user = null; _fcmToken = null; });
+    setState(() { _user = null; _fcmToken = null; _fcmTokenSynced = false; });
   }
 
   @override
