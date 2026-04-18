@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../core/theme.dart';
+import '../core/api.dart';
 import 'orders_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
@@ -14,7 +18,56 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _tab = 0; // 0=Buyurtmalar, 1=Profil
-  // Chat is pushed as a route, not a tab
+  StreamSubscription<Position>? _locStream;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.user['appRole'] != 'FACILITY') {
+      _startBackgroundLocationTracker();
+    }
+  }
+
+  @override
+  void dispose() {
+    _locStream?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startBackgroundLocationTracker() async {
+    LocationPermission p = await Geolocator.checkPermission();
+    if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
+    if (p == LocationPermission.deniedForever) return;
+
+    if (p == LocationPermission.always || p == LocationPermission.whileInUse) {
+      LocationSettings settings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      );
+
+      if (Platform.isAndroid) {
+        settings = AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+          forceLocationManager: true,
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationText: "Sizning manzilingiz operatorga yetkazilmoqda",
+            notificationTitle: "Gilam Driver",
+            enableWakeLock: true,
+          ),
+        );
+      }
+
+      _locStream = Geolocator.getPositionStream(locationSettings: settings).listen((pos) {
+        // Operator ekranidagi harita uchun driver pozitsiyasini doimiy yangilab turish
+        try {
+          apiRequest('/users/${widget.user['id']}', method: 'PUT', body: {
+            'currentLocation': {'x': pos.longitude, 'y': pos.latitude}
+          });
+        } catch (_) {}
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
