@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "uz.ecos.gilam.driver"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.1.12297006"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         // Enable core library desugaring (required by flutter_local_notifications)
@@ -43,3 +43,4 @@ dependencies {
 flutter {
     source = "../.."
 }
+

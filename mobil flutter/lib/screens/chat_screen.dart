@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../core/api.dart';
 import '../core/theme.dart';
 
@@ -22,10 +27,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   bool _connected = false;
   bool _reconnecting = false;
   String _statusText = 'Ulanmoqda...';
+  bool _sendingMedia = false;
 
   final TextEditingController _ctrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  final ImagePicker _picker = ImagePicker();
 
   // ── Socket polling state ──────────────────────────────────────────────────────
   String? _sid;
@@ -64,7 +71,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   Future<void> _init() async {
     _jwtToken = await getToken();
 
-    // Operator olish
     try {
       final op = await getSupportContact();
       if (mounted && op != null) setState(() => _operator = op);
@@ -72,7 +78,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       debugPrint('[Chat] Operator error: $e');
     }
 
-    // Tarix yuklash
     if (_operator != null) {
       try {
         final h = await getMessageHistory(_operator!['id'].toString());
@@ -85,9 +90,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       }
     }
 
-    // Socket ulanish
     _startPolling();
-
     if (mounted) setState(() => _loading = false);
   }
 
@@ -117,34 +120,25 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         await Future.delayed(Duration(seconds: wait));
       }
     }
-    debugPrint('[Chat] Polling stopped');
   }
 
   Future<void> _handshake() async {
-    debugPrint('[Chat] Handshake...');
-    // Step1: EIO handshake
     final u1 = Uri.parse('$_origin$_sockPath?EIO=4&transport=polling&token=$_jwtToken');
     final r1 = await http.get(u1).timeout(const Duration(seconds: 20));
-    if (r1.statusCode != 200) throw Exception('Handshake ${r1.statusCode}: ${r1.body}');
-
-    final body = r1.body;
-    final jIdx = body.indexOf('{');
+    if (r1.statusCode != 200) throw Exception('Handshake ${r1.statusCode}');
+    final jIdx = r1.body.indexOf('{');
     if (jIdx < 0) throw Exception('Bad handshake');
-    final hs = jsonDecode(body.substring(jIdx)) as Map;
+    final hs = jsonDecode(r1.body.substring(jIdx)) as Map;
     _sid = hs['sid'] as String;
-    debugPrint('[Chat] SID: $_sid');
 
-    // Step2: join /chat namespace
     final pu = Uri.parse('$_origin$_sockPath?EIO=4&transport=polling&sid=$_sid');
     final r2 = await http.post(pu,
         headers: {'Content-Type': 'text/plain;charset=UTF-8'},
         body: '40$_ns,').timeout(const Duration(seconds: 10));
     if (r2.statusCode != 200) throw Exception('Join ${r2.statusCode}');
 
-    // Step3: read namespace ack
     await Future.delayed(const Duration(milliseconds: 500));
-    final r3 = await http.get(pu).timeout(const Duration(seconds: 20));
-    debugPrint('[Chat] NS ack: ${r3.body.substring(0, r3.body.length.clamp(0, 80))}');
+    await http.get(pu).timeout(const Duration(seconds: 20));
     _setConnected(true);
     if (mounted) setState(() { _reconnecting = false; _statusText = 'Online'; });
   }
@@ -153,16 +147,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     if (_sid == null || !mounted) return;
     final pu = Uri.parse('$_origin$_sockPath?EIO=4&transport=polling&sid=$_sid');
     final r = await http.get(pu).timeout(const Duration(seconds: 40));
-
     if (r.statusCode == 400 || r.statusCode == 404) {
       _sid = null;
       throw Exception('Session ended');
     }
     if (r.statusCode != 200) throw Exception('Poll ${r.statusCode}');
-
-    if (r.body.isNotEmpty && r.body != 'ok') {
-      _parseBody(r.body);
-    }
+    if (r.body.isNotEmpty && r.body != 'ok') _parseBody(r.body);
   }
 
   void _parseBody(String raw) {
@@ -174,19 +164,14 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
   void _parsePkt(String pkt) {
     if (pkt.isEmpty) return;
-    // Strip length prefix
     String p = pkt;
     final ci = pkt.indexOf(':');
     if (ci > 0 && ci < 5 && int.tryParse(pkt.substring(0, ci)) != null) {
       p = pkt.substring(ci + 1);
     }
-
-    debugPrint('[Chat] PKT: ${p.substring(0, p.length.clamp(0, 80))}');
-
-    if (p == '2') { _pong(); return; } // ping → pong
+    if (p == '2') { _pong(); return; }
     if (p.startsWith('41')) { _sid = null; _setConnected(false); return; }
     if (p.startsWith('40')) { _setConnected(true); return; }
-
     if (p.startsWith('42')) {
       String? body;
       if (p.startsWith('42$_ns,')) body = p.substring('42$_ns,'.length);
@@ -198,8 +183,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         final event = arr[0] as String;
         final data = arr.length > 1 ? arr[1] : null;
         if (data is! Map) return;
-        final msg = Map<String, dynamic>.from(data);
-        _onEvent(event, msg);
+        _onEvent(event, Map<String, dynamic>.from(data));
       } catch (e) { debugPrint('[Chat] Parse err: $e'); }
     }
   }
@@ -207,11 +191,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   void _onEvent(String event, Map<String, dynamic> msg) {
     if (!mounted) return;
     if (event == 'newMessage') {
-      debugPrint('[Chat] 📩 newMessage: ${msg['text']}');
       final fromOp = _operator != null && msg['senderId'] == _operator!['id'];
       if (fromOp) { setState(() => _messages.add(msg)); _scrollToBottom(); }
     } else if (event == 'messageSent') {
-      debugPrint('[Chat] ✅ messageSent');
       setState(() {
         final idx = _messages.indexWhere((m) => m['_temp'] == true);
         if (idx >= 0) _messages[idx] = msg;
@@ -243,7 +225,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
-  // ── Send message ─────────────────────────────────────────────────────────────
+  // ── Send text ────────────────────────────────────────────────────────────────
   Future<void> _sendSocket(String text) async {
     if (_sid == null) return;
     final payload = '42$_ns,${jsonEncode(['sendMessage', {
@@ -301,6 +283,143 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     } else {
       _sendHttp(text, tempId);
     }
+  }
+
+  // ── Send image ───────────────────────────────────────────────────────────────
+  Future<void> _pickAndSendImage(ImageSource source) async {
+    if (_operator == null) return;
+    try {
+      final xfile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 75,
+      );
+      if (xfile == null || !mounted) return;
+
+      final bytes = await File(xfile.path).readAsBytes();
+      if (bytes.length > 5 * 1024 * 1024) {
+        if (mounted) _showSnack('Rasm 5MB dan katta bo\'lmasin');
+        return;
+      }
+
+      setState(() => _sendingMedia = true);
+      final base64Img = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      final text = '[IMAGE]:$base64Img';
+
+      final tempId = 'tmp_img_${DateTime.now().millisecondsSinceEpoch}';
+      final tempMsg = <String, dynamic>{
+        'id': tempId,
+        'text': text,
+        'senderId': widget.currentUser['id'],
+        'createdAt': DateTime.now().toIso8601String(),
+        '_temp': true,
+      };
+      setState(() { _messages.add(tempMsg); _sendingMedia = false; });
+      _scrollToBottom();
+
+      if (_connected && _sid != null) {
+        await _sendSocket(text);
+      } else {
+        await _sendHttp(text, tempId);
+      }
+    } catch (e) {
+      debugPrint('[Chat] Image error: $e');
+      if (mounted) setState(() => _sendingMedia = false);
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF111827),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            const Text('Rasm tanlash', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: kPrimary.withAlpha(30), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.camera_alt_rounded, color: kPrimary),
+              ),
+              title: const Text('Kamera', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              subtitle: Text('Yangi rasm olish', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12)),
+              onTap: () { Navigator.pop(context); _pickAndSendImage(ImageSource.camera); },
+            ),
+            ListTile(
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: Colors.purple.withAlpha(40), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.photo_library_rounded, color: Colors.purpleAccent),
+              ),
+              title: const Text('Galereya', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              subtitle: Text('Mavjud rasmni yuborish', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12)),
+              onTap: () { Navigator.pop(context); _pickAndSendImage(ImageSource.gallery); },
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ── Send location ─────────────────────────────────────────────────────────────
+  Future<void> _sendLocation() async {
+    if (_operator == null) return;
+    try {
+      // Ruxsat so'rash
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever) {
+        if (mounted) _showSnack('Lokatsiya ruxsati berilmagan');
+        return;
+      }
+
+      setState(() => _sendingMedia = true);
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 10)),
+      );
+
+      final text = '[LOCATION]:${pos.latitude.toStringAsFixed(6)},${pos.longitude.toStringAsFixed(6)}';
+      final tempId = 'tmp_loc_${DateTime.now().millisecondsSinceEpoch}';
+      final tempMsg = <String, dynamic>{
+        'id': tempId,
+        'text': text,
+        'senderId': widget.currentUser['id'],
+        'createdAt': DateTime.now().toIso8601String(),
+        '_temp': true,
+      };
+      setState(() { _messages.add(tempMsg); _sendingMedia = false; });
+      _scrollToBottom();
+
+      if (_connected && _sid != null) {
+        await _sendSocket(text);
+      } else {
+        await _sendHttp(text, tempId);
+      }
+    } catch (e) {
+      debugPrint('[Chat] Location error: $e');
+      if (mounted) {
+        setState(() => _sendingMedia = false);
+        _showSnack('Lokatsiya olinmadi: $e');
+      }
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
+    );
   }
 
   void _scrollToBottom() {
@@ -474,7 +593,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         final showDate = i == 0 || _diffDay(_messages[i - 1], msg);
         return Column(mainAxisSize: MainAxisSize.min, children: [
           if (showDate) _DateLabel(msg['createdAt'] as String?),
-          _Bubble(msg: msg, isMe: isMe, isTemp: msg['_temp'] == true),
+          _Bubble(
+            msg: msg,
+            isMe: isMe,
+            isTemp: msg['_temp'] == true,
+            onImageTap: (src) => _openImageFullscreen(src),
+          ),
         ]);
       },
     );
@@ -488,61 +612,95 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     } catch (_) { return false; }
   }
 
+  void _openImageFullscreen(String src) {
+    Navigator.push(context, MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => _ImageViewer(src: src),
+    ));
+  }
+
   Widget _buildInput() {
     final hasText = _ctrl.text.trim().isNotEmpty;
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 10, 12, MediaQuery.of(context).padding.bottom + 10),
+      padding: EdgeInsets.fromLTRB(12, 8, 12, MediaQuery.of(context).padding.bottom + 8),
       decoration: const BoxDecoration(
         color: Color(0xFF111827),
         border: Border(top: BorderSide(color: Color(0xFF1F2937))),
       ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Expanded(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            constraints: const BoxConstraints(minHeight: 46, maxHeight: 120),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A0F1E),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: hasText ? kPrimary.withAlpha(150) : const Color(0xFF1F2937),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // Toolbar: rasm + lokatsiya
+        Row(children: [
+          _ToolBtn(
+            icon: Icons.image_rounded,
+            color: Colors.purpleAccent,
+            label: 'Rasm',
+            onTap: _sendingMedia ? null : _showImageSourceDialog,
+          ),
+          const SizedBox(width: 6),
+          _ToolBtn(
+            icon: Icons.location_on_rounded,
+            color: const Color(0xFF22C55E),
+            label: 'Lokatsiya',
+            onTap: _sendingMedia ? null : _sendLocation,
+          ),
+          if (_sendingMedia) ...[
+            const SizedBox(width: 10),
+            const SizedBox(width: 14, height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: kPrimary)),
+            const SizedBox(width: 6),
+            Text('Yuborilmoqda...', style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 11)),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        // Text input + send
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              constraints: const BoxConstraints(minHeight: 46, maxHeight: 120),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A0F1E),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: hasText ? kPrimary.withAlpha(150) : const Color(0xFF1F2937),
+                ),
               ),
-            ),
-            child: TextField(
-              controller: _ctrl,
-              focusNode: _focusNode,
-              style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
-              minLines: 1, maxLines: 5,
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _send(),
-              decoration: const InputDecoration(
-                hintText: 'Xabar yozing...',
-                hintStyle: TextStyle(color: Color(0xFF4B5563), fontSize: 15),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: TextField(
+                controller: _ctrl,
+                focusNode: _focusNode,
+                style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                minLines: 1, maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) => _send(),
+                decoration: const InputDecoration(
+                  hintText: 'Xabar yozing...',
+                  hintStyle: TextStyle(color: Color(0xFF4B5563), fontSize: 15),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        GestureDetector(
-          onTap: _send,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: hasText ? const LinearGradient(
-                colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ) : null,
-              color: hasText ? null : const Color(0xFF1F2937),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: hasText ? _send : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: hasText ? const LinearGradient(
+                  colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                ) : null,
+                color: hasText ? null : const Color(0xFF1F2937),
+              ),
+              child: Icon(Icons.send_rounded,
+                  color: hasText ? Colors.white : const Color(0xFF4B5563), size: 22),
             ),
-            child: Icon(Icons.send_rounded,
-                color: hasText ? Colors.white : const Color(0xFF4B5563), size: 22),
           ),
-        ),
+        ]),
       ]),
     );
   }
@@ -574,6 +732,39 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         ),
       ]),
     ));
+  }
+}
+
+// ── Toolbar button ────────────────────────────────────────────────────────────
+class _ToolBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback? onTap;
+  const _ToolBtn({required this.icon, required this.color, required this.label, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: onTap == null ? 0.4 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withAlpha(25),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withAlpha(60)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 5),
+            Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ),
+    );
   }
 }
 
@@ -613,17 +804,122 @@ class _DateLabel extends StatelessWidget {
 class _Bubble extends StatelessWidget {
   final Map<String, dynamic> msg;
   final bool isMe, isTemp;
-  const _Bubble({required this.msg, required this.isMe, required this.isTemp});
+  final void Function(String src)? onImageTap;
+  const _Bubble({required this.msg, required this.isMe, required this.isTemp, this.onImageTap});
+
   @override
   Widget build(BuildContext context) {
     final text = msg['text'] as String? ?? '';
     final time = _fmt(msg['createdAt'] as String?);
+
+    // ── Rasm xabari
+    if (text.startsWith('[IMAGE]:')) {
+      final src = text.substring(8);
+      return _buildWrapper(
+        child: Column(crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: GestureDetector(
+              onTap: () => onImageTap?.call(src),
+              child: Image.memory(
+                base64Decode(src.contains(',') ? src.split(',')[1] : src),
+                width: 220,
+                height: 180,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 220, height: 100,
+                  color: Colors.white10,
+                  child: const Icon(Icons.broken_image, color: Colors.white38, size: 40),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          _timeRow(time),
+        ]),
+        isPadded: false,
+      );
+    }
+
+    // ── Lokatsiya xabari
+    if (text.startsWith('[LOCATION]:')) {
+      final coords = text.substring(11).split(',');
+      if (coords.length >= 2) {
+        final lat = double.tryParse(coords[0]) ?? 0;
+        final lng = double.tryParse(coords[1]) ?? 0;
+        final googleUrl = 'https://www.google.com/maps?q=$lat,$lng';
+        return _buildWrapper(
+          isPadded: false,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: SizedBox(
+                height: 150, width: 240,
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(lat, lng),
+                    initialZoom: 14,
+                    interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
+                    ),
+                    MarkerLayer(markers: [
+                      Marker(
+                        point: LatLng(lat, lng),
+                        child: const Icon(Icons.location_pin, color: Colors.red, size: 36),
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => launchUrl(Uri.parse(googleUrl)),
+              child: Container(
+                width: 240,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(children: [
+                  const Icon(Icons.open_in_new_rounded, color: kPrimary, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(
+                    '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
+                    style: const TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                  )),
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
+              child: _timeRow(time),
+            ),
+          ]),
+        );
+      }
+    }
+
+    // ── Oddiy matn
+    return _buildWrapper(
+      child: Column(crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
+        Text(text, style: TextStyle(
+          color: isMe ? Colors.white : Colors.white.withAlpha(220),
+          fontSize: 15, fontWeight: FontWeight.w500, height: 1.4,
+        )),
+        const SizedBox(height: 4),
+        _timeRow(time),
+      ]),
+    );
+  }
+
+  Widget _buildWrapper({required Widget child, bool isPadded = true}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 4, left: isMe ? 56 : 0, right: isMe ? 0 : 56),
       child: Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: isPadded ? const EdgeInsets.symmetric(horizontal: 14, vertical: 10) : EdgeInsets.zero,
           decoration: BoxDecoration(
             gradient: isMe ? const LinearGradient(
               colors: [Color(0xFF22D3EE), Color(0xFF6366F1)],
@@ -641,33 +937,63 @@ class _Bubble extends StatelessWidget {
               blurRadius: 8, offset: const Offset(0, 3),
             )],
           ),
-          child: Column(
-            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              Text(text, style: TextStyle(
-                color: isMe ? Colors.white : Colors.white.withAlpha(220),
-                fontSize: 15, fontWeight: FontWeight.w500, height: 1.4,
-              )),
-              const SizedBox(height: 4),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(time, style: TextStyle(color: Colors.white.withAlpha(isMe ? 160 : 100), fontSize: 10)),
-                if (isMe) ...[
-                  const SizedBox(width: 4),
-                  Icon(isTemp ? Icons.access_time_rounded : Icons.done_all_rounded,
-                      size: 13, color: Colors.white.withAlpha(isTemp ? 120 : 200)),
-                ],
-              ]),
-            ],
-          ),
+          child: child,
         ),
       ),
     );
   }
+
+  Widget _timeRow(String time) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(time, style: TextStyle(color: Colors.white.withAlpha(isMe ? 160 : 100), fontSize: 10)),
+      if (isMe) ...[
+        const SizedBox(width: 4),
+        Icon(isTemp ? Icons.access_time_rounded : Icons.done_all_rounded,
+            size: 13, color: Colors.white.withAlpha(isTemp ? 120 : 200)),
+      ],
+    ]);
+  }
+
   String _fmt(String? iso) {
     if (iso == null) return '';
     try {
       final dt = DateTime.parse(iso).toLocal();
       return '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
     } catch (_) { return ''; }
+  }
+}
+
+// ── Image Fullscreen Viewer ───────────────────────────────────────────────────
+class _ImageViewer extends StatelessWidget {
+  final String src;
+  const _ImageViewer({required this.src});
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = base64Decode(src.contains(',') ? src.split(',')[1] : src);
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded, color: Colors.white),
+            onPressed: () {},
+            tooltip: 'Saqlash',
+          ),
+        ],
+      ),
+      body: InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 5.0,
+        child: Center(
+          child: Image.memory(bytes, fit: BoxFit.contain),
+        ),
+      ),
+    );
   }
 }
