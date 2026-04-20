@@ -6,6 +6,10 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[App] Starting Gilam Operator...');
+  
+  // Electron oynasi yangilangandan keyin fokus yo'qolishining oldini olish
+  window.focus();
+  setTimeout(() => window.focus(), 100);
 
   // ═══ PHASE 1: KOMPONENTLARNI YUKLASH ═══════════════════════════════
   const root = document.getElementById('app-root');

@@ -42,6 +42,10 @@ const UI = {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     if (name === 'login') {
       Utils.$('login-screen').classList.add('active');
+      setTimeout(() => {
+        const phoneInput = document.getElementById('login-phone');
+        if (phoneInput) phoneInput.focus();
+      }, 300);
     } else {
       Utils.$('app-screen').classList.add('active');
     }
