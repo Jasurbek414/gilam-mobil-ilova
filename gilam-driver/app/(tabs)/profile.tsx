@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, ActivityIndicator, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
-import { logout, createExpense, getDriverExpenses, deleteExpense } from '../../lib/api';
+import { logout, createExpense, getDriverExpenses, deleteExpense, updateExpense } from '../../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {

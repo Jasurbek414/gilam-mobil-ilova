@@ -16,10 +16,10 @@ export function setupForegroundNotificationHandler() {
   try {
     N.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,   // ✓ Alert (tepadan tushuvchi banner)
-        shouldPlaySound: true,   // ✓ Ovoz
-        shouldSetBadge: true,    // ✓ Badge (ilovada raqam)
-      }),
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      } as any),
     });
     console.log('[Push] ✅ Foreground notification handler o\'rnatildi');
   } catch (e) {
@@ -99,7 +99,7 @@ async function showGoToSettingsAlert() {
       '🔔 Bildirishnomalar o\'chirilgan',
       'Operator xabarlarini va buyurtma yangilanishlarini olish uchun bildirishnomalar yoqilgan bo\'lishi kerak.',
       [
-        { text: 'Keyinroq', style: 'cancel', onPress: resolve },
+        { text: 'Keyinroq', style: 'cancel', onPress: () => resolve() },
         {
           text: '⚙️ Sozlamalarni ochish',
           onPress: async () => {
@@ -183,7 +183,7 @@ export function addNotificationReceivedListener(
   if (isExpoGo) return null;
   try {
     const sub = N.addNotificationReceivedListener(cb);
-    return () => N.removeNotificationSubscription(sub);
+    return () => sub.remove();
   } catch { return null; }
 }
 
@@ -193,6 +193,6 @@ export function addNotificationResponseListener(
   if (isExpoGo) return null;
   try {
     const sub = N.addNotificationResponseReceivedListener(cb);
-    return () => N.removeNotificationSubscription(sub);
+    return () => sub.remove();
   } catch { return null; }
 }
