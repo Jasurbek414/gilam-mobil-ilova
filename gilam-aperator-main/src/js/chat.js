@@ -82,8 +82,10 @@ const ChatManager = {
 
       this._setStatus('connecting');
 
-      this.socket = io('https://gilam-api.ecos.uz/chat', {
-        path: '/socket.io',
+      const apiUrl = window.Api?.config?.API_BASE || 'https://gilam-api.ecos.uz';
+      
+      this.socket = io(apiUrl + '/chat', {
+        path: '/api/socket.io',
         query: { token },
         transports: ['websocket', 'polling'],
         reconnectionAttempts: 5,
