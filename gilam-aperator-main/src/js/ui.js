@@ -9,7 +9,6 @@ const UI = {
   activeCallSeconds: 0,
 
   init() {
-    this.bindWindowControls();
     this.bindTabs();
     this.bindDialer();
     this.renderDialerLines();

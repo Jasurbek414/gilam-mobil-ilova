@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Overlays va modallar — root darajada (fixed position)
   window.ComponentLoader.load('call-overlays', root);
   window.ComponentLoader.load('modals', root);
+  
+  // Dasturning tepasidagi (Qizil X, - va Kattalashtirish) tugmalarini doimiy ulash
+  window.UI.bindWindowControls();
 
   // ═══ LOGIN ════════════════════════════════════════════════════════════
   Utils.$('login-form')?.addEventListener('submit', async (e) => {
