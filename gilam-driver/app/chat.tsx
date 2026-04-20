@@ -88,6 +88,7 @@ export default function ChatScreen() {
 
         // 3. WebSocket ulanish
         socket = io(`${WS_URL}/chat`, {
+          path: '/api/socket.io',
           query: { token },
           transports: ['websocket'],
           reconnection: true,
