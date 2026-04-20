@@ -2252,7 +2252,6 @@ textarea.crm-input { resize: none; }
 }
 
 .chat-bubble {
-  max-width: 72%;
   padding: 9px 14px;
   border-radius: 18px;
   font-size: 14px;
@@ -2646,6 +2645,7 @@ textarea.crm-input { resize: none; }
   gap: 6px;
   position: relative;
   margin-bottom: 2px;
+  max-width: 72%;
 }
 .chat-bubble-actions {
   opacity: 0;
