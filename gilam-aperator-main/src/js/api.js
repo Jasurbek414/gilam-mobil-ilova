@@ -6,7 +6,10 @@ const Api = {
   config: {
     API_BASE: 'https://gilam-api.ecos.uz',
     token: localStorage.getItem('token') || null,
-    currentUser: JSON.parse(localStorage.getItem('user') || 'null')
+    currentUser: (() => {
+      try { return JSON.parse(localStorage.getItem('user') || 'null'); } 
+      catch (e) { return null; }
+    })()
   },
 
   updateServerUrl(url) {
