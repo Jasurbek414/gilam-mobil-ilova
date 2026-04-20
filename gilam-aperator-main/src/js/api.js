@@ -24,6 +24,7 @@ const Api = {
     const res = await fetch(`${this.config.API_BASE}/api${path}`, { ...options, headers });
     
     if (res.status === 401) {
+      alert("DEBUG: 401 Unauthorized xatosi ushbu linkda yuz berdi: " + path + "\nShuning uchun dasturdan chiqarib yuborildi!");
       this.logout();
       throw new Error('Sessiya tugadi (401 Unauthorized)');
     }
