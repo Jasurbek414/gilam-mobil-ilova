@@ -43,15 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window.ComponentLoader.load('call-overlays', root);
   window.ComponentLoader.load('modals', root);
 
-  // ═══ PHASE 2: MODULLARNI BOSHLASH ══════════════════════════════════
-  // Komponentlar DOM da bo'lgandan keyin init() chaqiriladi
-  window.UI.init();
-  window.SipClient.init();
-  window.CRM.init();
-  window.Settings.load();
-  if (window.ChatManager) window.ChatManager.init();
-
-
   // ═══ LOGIN ════════════════════════════════════════════════════════════
   Utils.$('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -94,6 +85,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══ START APP ═════════════════════════════════════════════════════════════
 function startApp(user) {
   window.UI.showScreen('app');
+
+  // Modullarni faqat Dastur yonganda 1 marta ishga tushuramiz (Ctrl+R xatolarini yopish uchun)
+  if (!window.__modulesStarted) {
+    window.UI.init();
+    window.SipClient.init();
+    window.CRM.init();
+    window.Settings.load();
+    if (window.ChatManager) window.ChatManager.init();
+    window.__modulesStarted = true;
+  }
 
   // WebSocket ga ulanish (backend mavjud bo'lsagina)
   try {
