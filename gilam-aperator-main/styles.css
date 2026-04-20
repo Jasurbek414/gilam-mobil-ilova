@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════════
    GILAM OPERATOR v3 — Senior-Level Professional Softphone UI
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -34,7 +34,8 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: 0.01em;
   background: var(--bg-0);
   color: var(--t1);
   height: 100vh;
@@ -251,7 +252,7 @@ body {
   flex: 1; background: 0; border: 0; color: var(--t1);
   font-size: 18px; font-weight: 400; letter-spacing: .12em;
   outline: 0; padding: 0; min-width: 0;
-  font-family: 'Inter', monospace;
+  font-family: inherit;
 }
 .dial-input::placeholder { color: var(--t3); font-weight: 300; font-size: 16px; letter-spacing: .08em; }
 
