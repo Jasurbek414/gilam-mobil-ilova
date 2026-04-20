@@ -63,8 +63,8 @@ const Utils = {
     try {
       const crypto = this._getCrypto();
       if (!crypto) return atob(hexStr);
-      // Ochiq JWT matnlari kelsa decrypt qilishdan saqlanish:
-      if (hexStr.includes('eyJ') && !/^[0-9a-fA-F]+$/.test(hexStr)) return hexStr;
+      // Faqat haqiqiy ochiq holatdagi JWT token kelsa (3 ta qism, nuqtalar bilan ajratilgan) decrypt dan qochamiz:
+      if (hexStr.includes('eyJ') && hexStr.split('.').length === 3 && !/^[0-9a-fA-F]+$/.test(hexStr)) return hexStr;
       
       const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from('G1lamS3cur3K3y!@987654321012345'), Buffer.from('G1lamInv3ctor123'));
       let decrypted = decipher.update(hexStr, 'hex', 'utf8');

@@ -77,15 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ═══ CHECK EXISTING LOGIN ═════════════════════════════════════════════
-  let debugMsg = "DEBUG INFO:\nToken mavjudmi: " + !!window.Api.config.token + "\nUser mavjudmi: " + !!window.Api.config.currentUser;
-  
   if (window.Api.config.token && window.Api.config.currentUser) {
     console.log('[App] Existing session found, auto-login');
     startApp(window.Api.config.currentUser);
   } else {
-    debugMsg += "\nlocalStorage.getItem('token') = " + localStorage.getItem('token');
-    debugMsg += "\nlocalStorage.getItem('user') = " + localStorage.getItem('user');
-    alert(debugMsg + "\n\nKirish oynasiga yo'naltirildi!");
     window.UI.showScreen('login');
   }
 });
