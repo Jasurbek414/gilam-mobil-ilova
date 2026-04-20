@@ -1,0 +1,187 @@
+﻿<!-- CHAT TAB - Haydovchilar bilan real-time chat -->
+<div class="tab-content" id="tab-chat">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="chat-sidebar">
+    <div class="chat-sidebar-header">
+      <div class="chat-sidebar-title">
+        <div class="chat-sidebar-icon">
+          <span class="material-icons-round">support_agent</span>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div class="chat-sidebar-name">Haydovchilar</div>
+          <div class="chat-sidebar-sub" id="chat-drivers-count">Yuklanmoqda...</div>
+        </div>
+        <div id="chat-status-dot" class="chat-online-badge offline" title="Ulanish holati"></div>
+      </div>
+      <div class="chat-search-wrap">
+        <span class="material-icons-round chat-search-icon">search</span>
+        <input id="chat-search" type="text" placeholder="Qidirish..." class="chat-search-input">
+      </div>
+    </div>
+    <div id="chat-drivers-list" class="chat-drivers-list">
+      <div class="chat-list-loading">
+        <span class="material-icons-round">hourglass_empty</span>
+        <span>Yuklanmoqda...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Chat asosiy qismi -->
+  <div class="chat-main">
+
+    <!-- Bo'sh holat -->
+    <div id="chat-placeholder" class="chat-placeholder">
+      <div class="chat-placeholder-icon">
+        <span class="material-icons-round">forum</span>
+      </div>
+      <div class="chat-placeholder-title">Suhbatni boshlang</div>
+      <div class="chat-placeholder-sub">Chap tarafdagi haydovchini tanlang</div>
+    </div>
+
+    <!-- Aktiv chat paneli -->
+    <div id="chat-panel" class="chat-panel" style="display:none;">
+
+      <!-- Header -->
+      <div class="chat-panel-header">
+        <div class="chat-panel-avatar" id="chat-panel-avatar">?</div>
+        <div class="chat-panel-info">
+          <div class="chat-panel-name" id="chat-panel-name">-</div>
+          <div class="chat-panel-status" id="chat-panel-role">Haydovchi</div>
+        </div>
+        <button class="btn-icon" id="btn-close-chat-panel" title="Yopish">
+          <span class="material-icons-round">keyboard_arrow_left</span>
+        </button>
+      </div>
+
+      <!-- Xabarlar -->
+      <div id="chat-messages-list" class="chat-messages-list"></div>
+
+      <!-- Input zone: rasm tugmasi + textarea + send — bitta qatorda -->
+      <div class="chat-input-zone">
+        <div class="chat-input-row">
+
+          <!-- Rasm yuborish tugmasi (ikonka) -->
+          <button id="chat-btn-image" class="chat-icon-btn" title="Rasm yuborish">
+            <span class="material-icons-round">image</span>
+          </button>
+
+          <!-- Matn kiritish -->
+          <div class="chat-input-wrap">
+            <textarea
+              id="chat-input"
+              class="chat-textarea"
+              rows="1"
+              placeholder="Xabar yozing..."
+            ></textarea>
+          </div>
+
+          <!-- Yuborish tugmasi -->
+          <button id="chat-send-btn" class="chat-send-btn" title="Yuborish (Enter)">
+            <span class="material-icons-round">send</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Hidden file input (web fallback) -->
+      <input type="file" id="chat-file-input" accept="image/*" style="display:none;">
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Rasm kattalashtirish modali -->
+<div id="chat-image-modal" class="chat-image-modal" style="display:none;" onclick="this.style.display='none'">
+  <button class="chat-image-modal-close" onclick="document.getElementById('chat-image-modal').style.display='none'">
+    <span class="material-icons-round">close</span>
+  </button>
+  <img id="chat-image-modal-img" src="" alt="Rasm" class="chat-image-modal-img">
+</div>
+
+<!-- Lokatsiyani mijozga biriktirish modali -->
+<div id="chat-attach-modal" class="chat-map-modal" style="display:none;">
+  <div class="chat-attach-modal-box">
+    <div class="chat-attach-modal-header">
+      <div class="chat-attach-modal-header-icon">
+        <span class="material-icons-round">person_pin_circle</span>
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:14px;">Mijozga biriktirish</div>
+        <div id="chat-attach-coords" style="font-size:11px;color:var(--text-secondary);margin-top:2px;">-</div>
+      </div>
+      <a id="chat-attach-gmaps" href="#" target="_blank" class="chat-attach-gmaps-btn" title="Google Maps">
+        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      </a>
+      <button class="btn-icon" id="chat-attach-close">
+        <span class="material-icons-round">close</span>
+      </button>
+    </div>
+
+    <!-- Qidirish -->
+    <div class="chat-attach-search-wrap">
+      <span class="material-icons-round chat-attach-search-icon">search</span>
+      <input id="chat-attach-search" type="text" class="chat-attach-search-input"
+        placeholder="Mijoz ismi, telefon yoki manzil...">
+    </div>
+
+    <!-- Mijozlar ro'yxati -->
+    <div id="chat-attach-customers-list" class="chat-attach-customers-list">
+      <div class="chat-attach-loading">
+        <span class="material-icons-round">hourglass_empty</span>
+        Yuklanmoqda...
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="chat-attach-modal-footer">
+      <div id="chat-attach-status" class="chat-attach-status"></div>
+      <button id="chat-attach-confirm" class="btn-primary" disabled>
+        <span class="material-icons-round">check_circle</span>
+        Biriktirish
+      </button>
+    </div>
+  </div>
+</div>
+<!-- Xabarni uzatish (Forward) modali -->
+<div id="chat-forward-modal" class="chat-map-modal" style="display:none;">
+  <div class="chat-attach-modal-box">
+    <div class="chat-attach-modal-header">
+      <div class="chat-attach-modal-header-icon" style="background: rgba(99,102,241,0.15);">
+        <span class="material-icons-round" style="color:var(--accent);">forward</span>
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:14px;">Xabarni uzatish</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Qabul qiluvchini tanlang</div>
+      </div>
+      <button class="btn-icon" id="chat-forward-close">
+        <span class="material-icons-round">close</span>
+      </button>
+    </div>
+
+    <!-- Qidirish -->
+    <div class="chat-attach-search-wrap">
+      <span class="material-icons-round chat-attach-search-icon">search</span>
+      <input id="chat-forward-search" type="text" class="chat-attach-search-input"
+        placeholder="Haydovchi ismi yoki raqami...">
+    </div>
+
+    <!-- Haydovchilar ro'yxati -->
+    <div id="chat-forward-drivers-list" class="chat-attach-customers-list">
+      <div class="chat-attach-loading">
+        <span class="material-icons-round">hourglass_empty</span>
+        Yuklanmoqda...
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="chat-attach-modal-footer">
+      <div id="chat-forward-status" class="chat-attach-status"></div>
+      <button id="chat-forward-confirm" class="btn-primary" disabled>
+        <span class="material-icons-round">send</span>
+        Yuborish
+      </button>
+    </div>
+  </div>
+</div>

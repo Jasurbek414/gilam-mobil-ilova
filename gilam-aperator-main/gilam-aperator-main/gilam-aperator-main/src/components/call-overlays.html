@@ -1,0 +1,33 @@
+<!-- ═══ CALL OVERLAYS ═══════════════════════════════════════════════════ -->
+<!-- Active call overlay is now inside tab-dialer.html (dialer-panel) -->
+
+<!-- INCOMING CALL OVERLAY -->
+<div id="incoming-call-overlay" style="display:none;">
+  <div class="incoming-overlay-bg"></div>
+  <div class="incoming-overlay-content">
+    <div class="incoming-label">Kiruvchi qo'ng'iroq</div>
+    <div class="incoming-line-badge">
+      <span class="material-icons-round">headset_mic</span>
+      <span>Liniya: </span><strong id="incoming-line-name">—</strong>
+    </div>
+    <div class="incoming-caller" id="incoming-caller-number">+998 90 xxx xx xx</div>
+    <div class="incoming-caller-name" id="incoming-caller-name"></div>
+    <div class="incoming-campaign" id="incoming-campaign-name"></div>
+    <div class="incoming-wave">
+      <div class="wave-ring incoming-ring"></div>
+      <div class="wave-ring incoming-ring delay-1"></div>
+      <div class="wave-ring incoming-ring delay-2"></div>
+      <div class="call-avatar incoming-avatar">
+        <span class="material-icons-round">person</span>
+      </div>
+    </div>
+    <div class="incoming-actions">
+      <button class="btn-reject" id="btn-reject-call">
+        <span class="material-icons-round">call_end</span>
+      </button>
+      <button class="btn-answer" id="btn-answer-call">
+        <span class="material-icons-round">call</span>
+      </button>
+    </div>
+  </div>
+</div>

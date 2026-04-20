@@ -1,0 +1,282 @@
+<!-- ═══ DIALER TAB ══════════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-dialer">
+  <div class="dialer-layout">
+    <!-- LEFT: Dialer -->
+    <div class="dialer-panel">
+      <!-- SIP Status -->
+      <div class="sip-bar">
+        <div class="sip-bar-left">
+          <span id="sip-status-dot" class="sip-dot-inline offline"></span>
+          <span id="sip-status-text">SIP Ulanmagan</span>
+        </div>
+        <span id="sip-extension-text" class="sip-ext">—</span>
+      </div>
+
+      <!-- ═══ DIALER CARD ═══ -->
+      <div class="dialer-card">
+        <!-- Number Display -->
+        <div class="dial-display">
+          <span class="dial-prefix">+998</span>
+          <input type="text" id="dial-number" class="dial-input" placeholder="__ ___ __ __" autocomplete="off" spellcheck="false">
+        </div>
+
+        <!-- Dialpad Grid -->
+        <div class="dialpad">
+          <button class="dial-key" data-key="1"><span class="dk-num">1</span></button>
+          <button class="dial-key" data-key="2"><span class="dk-num">2</span><span class="dk-sub">ABC</span></button>
+          <button class="dial-key" data-key="3"><span class="dk-num">3</span><span class="dk-sub">DEF</span></button>
+          <button class="dial-key" data-key="4"><span class="dk-num">4</span><span class="dk-sub">GHI</span></button>
+          <button class="dial-key" data-key="5"><span class="dk-num">5</span><span class="dk-sub">JKL</span></button>
+          <button class="dial-key" data-key="6"><span class="dk-num">6</span><span class="dk-sub">MNO</span></button>
+          <button class="dial-key" data-key="7"><span class="dk-num">7</span><span class="dk-sub">PQRS</span></button>
+          <button class="dial-key" data-key="8"><span class="dk-num">8</span><span class="dk-sub">TUV</span></button>
+          <button class="dial-key" data-key="9"><span class="dk-num">9</span><span class="dk-sub">WXYZ</span></button>
+          <button class="dial-key" data-key="*"><span class="dk-num">✱</span></button>
+          <button class="dial-key" data-key="0"><span class="dk-num">0</span><span class="dk-sub">+</span></button>
+          <button class="dial-key" data-key="#"><span class="dk-num">#</span></button>
+        </div>
+
+        <!-- Call Row: backspace | call | clear -->
+        <div class="dial-actions">
+          <button id="btn-clear-number" class="dial-side-btn" title="Oxirgi raqamni o'chirish">
+            <span class="material-icons-round">backspace</span>
+          </button>
+          <button id="btn-call" class="btn-call" title="Qo'ng'iroq">
+            <span class="material-icons-round">call</span>
+          </button>
+          <button class="dial-side-btn" title="Hammasini tozalash" onclick="document.getElementById('dial-number').value='';document.getElementById('dial-number').focus();">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+
+        <!-- ═══ ACTIVE CALL OVERLAY (faqat dialer-card ichida) ═══ -->
+        <div id="active-call-overlay" style="display:none;">
+          <div class="call-overlay-bg"></div>
+          <div class="call-overlay-content">
+            <div class="call-status-label" id="call-status-label">Qo'ng'iroq qilinmoqda...</div>
+            <div class="call-target-number" id="call-target-display">—</div>
+            <div class="call-target-name" id="call-target-name"></div>
+            <div class="call-timer" id="call-timer">00:00</div>
+            <div class="call-wave">
+              <div class="wave-ring"></div>
+              <div class="wave-ring delay-1"></div>
+              <div class="wave-ring delay-2"></div>
+              <div class="call-avatar">
+                <span class="material-icons-round">person</span>
+              </div>
+            </div>
+            <div id="recording-indicator" style="display:none; text-align:center; margin-bottom:8px;">
+              <span style="display:inline-flex; align-items:center; gap:5px; padding:3px 12px; background:rgba(239,68,68,0.15); border-radius:20px; font-size:11px; color:var(--red); font-weight:600;">
+                <span class="material-icons-round" style="font-size:12px; animation: pulse 1s infinite;">fiber_manual_record</span>
+                REC
+              </span>
+            </div>
+            <div class="call-overlay-actions">
+              <button class="btn-call-action" id="btn-mute" title="Mikrofon">
+                <span class="material-icons-round">mic</span>
+                <span class="action-label">Mute</span>
+              </button>
+              <button class="btn-call-action" id="btn-hold" title="Kutishda">
+                <span class="material-icons-round">pause</span>
+                <span class="action-label">Hold</span>
+              </button>
+              <button class="btn-call-action" id="btn-record" title="Yozib olish">
+                <span class="material-icons-round">fiber_manual_record</span>
+                <span class="action-label">Yozish</span>
+              </button>
+              <button class="btn-call-hangup" id="btn-hangup">
+                <span class="material-icons-round">call_end</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ QUICK ACTIONS ═══ -->
+      <div class="dialer-quick">
+        <button class="dq-btn" id="dq-redial" title="Oxirgi raqamga qayta qo'ng'iroq">
+          <span class="material-icons-round">replay</span>
+          <span class="dq-label">Qayta</span>
+        </button>
+        <button class="dq-btn" id="dq-transfer" title="Qo'ng'iroqni yo'naltirish">
+          <span class="material-icons-round">phone_forwarded</span>
+          <span class="dq-label">Transfer</span>
+        </button>
+        <button class="dq-btn" id="dq-hold" title="Kutishga qo'yish">
+          <span class="material-icons-round">pause</span>
+          <span class="dq-label">Kutish</span>
+        </button>
+        <button class="dq-btn" id="dq-mute" title="Mikrofonni o'chirish">
+          <span class="material-icons-round">mic_off</span>
+          <span class="dq-label">Mute</span>
+        </button>
+      </div>
+
+      <!-- ═══ LINIYALAR — qaysi liniya qaysi kampaniyaga ═══ -->
+      <div class="dialer-lines">
+        <div class="dl-head">
+          <span class="material-icons-round">phone_in_talk</span>
+          <span>Liniyalar</span>
+        </div>
+        <div id="dialer-lines-list" class="dl-list">
+          <!-- JS orqali to'ldiriladi -->
+          <div class="dl-empty">Liniyalar yuklanmoqda...</div>
+        </div>
+      </div>
+
+      <!-- ═══ CALL STATS ═══ -->
+      <div class="dialer-stats">
+        <div class="ds-item">
+          <span class="material-icons-round">call_made</span>
+          <span class="ds-val" id="stat-outgoing">0</span>
+          <span class="ds-lbl">Chiquvchi</span>
+        </div>
+        <div class="ds-item">
+          <span class="material-icons-round">call_received</span>
+          <span class="ds-val" id="stat-incoming">0</span>
+          <span class="ds-lbl">Kiruvchi</span>
+        </div>
+        <div class="ds-item">
+          <span class="material-icons-round">call_missed</span>
+          <span class="ds-val" id="stat-missed">0</span>
+          <span class="ds-lbl">Javobsiz</span>
+        </div>
+        <div class="ds-item">
+          <span class="material-icons-round">schedule</span>
+          <span class="ds-val" id="stat-duration">0:00</span>
+          <span class="ds-lbl">Umumiy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CRM Panel -->
+    <div class="crm-side">
+
+      <!-- Active Campaign Badge -->
+      <div id="active-campaign-info" style="display:none;">
+        <div class="campaign-badge"><span class="material-icons-round">campaign</span><span id="campaign-name-badge">—</span></div>
+      </div>
+
+      <!-- Customer Lookup Result -->
+      <div id="customer-lookup" class="crm-card" style="display:none;">
+        <div class="crm-card-row">
+          <div class="customer-avatar"><span class="material-icons-round">person</span></div>
+          <div class="customer-info">
+            <span class="customer-name" id="lookup-name">—</span>
+            <span class="customer-phone" id="lookup-phone">—</span>
+            <span class="customer-address" id="lookup-address">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MIJOZ MA'LUMOTLARI ═══ -->
+      <div class="crm-card">
+        <div class="crm-card-head">
+          <span class="material-icons-round">person_add</span>
+          <span>Mijoz</span>
+        </div>
+        <div class="crm-card-body">
+          <div class="crm-field-row">
+            <div class="crm-field">
+              <span class="material-icons-round crm-field-icon">badge</span>
+              <input type="text" id="quick-crm-name" class="crm-input" placeholder="Ism familiya">
+            </div>
+            <div class="crm-field" style="width:200px; flex-shrink:0;">
+              <span class="material-icons-round crm-field-icon">call</span>
+              <input type="text" id="quick-crm-phone" class="crm-input" placeholder="+998...">
+            </div>
+          </div>
+          <div class="crm-field-row">
+            <div class="crm-field" style="flex:1;">
+              <span class="material-icons-round crm-field-icon">location_on</span>
+              <input type="text" id="quick-crm-address" class="crm-input" placeholder="Manzil">
+              <button class="crm-loc-btn" id="btn-pick-location" title="Xaritadan belgilash">
+                <span class="material-icons-round">map</span>
+              </button>
+            </div>
+          </div>
+          <div class="crm-field-row">
+            <div class="crm-field" style="flex:1;">
+              <span class="material-icons-round crm-field-icon">place</span>
+              <input type="text" id="quick-crm-landmark" class="crm-input" placeholder="Mo'ljal (masalan: metro yonida)">
+            </div>
+          </div>
+          <!-- Lokatsiya koordinatalari (yashirin) -->
+          <input type="hidden" id="quick-crm-lat" value="">
+          <input type="hidden" id="quick-crm-lng" value="">
+          <div id="location-status" class="crm-loc-status" style="display:none;">
+            <span class="material-icons-round">gps_fixed</span>
+            <span id="location-text">Lokatsiya belgilandi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ BUYURTMA ═══ -->
+      <div class="crm-card">
+        <div class="crm-card-head">
+          <span class="material-icons-round">shopping_cart</span>
+          <span>Buyurtma</span>
+        </div>
+        <div class="crm-card-body">
+          <div class="crm-field-row">
+            <div class="crm-field" style="flex:2;">
+              <span class="material-icons-round crm-field-icon">inventory_2</span>
+              <select id="quick-order-product" class="crm-input">
+                <option value="">Xizmat tanlang</option>
+              </select>
+            </div>
+            <div class="crm-field" style="width:70px; flex-shrink:0;">
+              <input type="number" id="quick-order-qty" class="crm-input" placeholder="Soni" min="1" value="1" style="text-align:center;">
+            </div>
+            <div class="crm-field" style="flex:1;">
+              <input type="text" id="quick-order-price" class="crm-input" placeholder="Narx">
+            </div>
+          </div>
+          <div class="crm-field-row">
+            <div class="crm-field" style="flex:1;">
+              <span class="material-icons-round crm-field-icon">event</span>
+              <select id="quick-crm-campaign" class="crm-input">
+                <option value="">Kampaniya tanlang...</option>
+              </select>
+            </div>
+          </div>
+          <div class="crm-field-row">
+            <div class="crm-field" style="flex:1;">
+              <span class="material-icons-round crm-field-icon">local_shipping</span>
+              <select id="quick-order-driver" class="crm-input">
+                <option value="">Haydovchi tanlang...</option>
+              </select>
+            </div>
+          </div>
+          <div class="crm-field">
+            <span class="material-icons-round crm-field-icon">notes</span>
+            <textarea id="quick-crm-note" class="crm-input" placeholder="Izoh..." rows="2" style="resize:none;"></textarea>
+          </div>
+          <div class="crm-actions">
+            <button class="btn-crm btn-crm-secondary" onclick="window.CRM.saveQuickCustomer()">
+              <span class="material-icons-round">person_add</span> Mijoz saqlash
+            </button>
+            <button class="btn-crm btn-crm-primary" onclick="window.CRM.saveQuickOrder()">
+              <span class="material-icons-round">add_shopping_cart</span> Buyurtma
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SO'NGGI QO'NG'IROQLAR ═══ -->
+      <div class="crm-card">
+        <div class="crm-card-head">
+          <span class="material-icons-round">history</span>
+          <span>So'nggi qo'ng'iroqlar</span>
+        </div>
+        <div id="dashboard-calls-list" class="crm-card-body">
+          <div class="crm-empty">
+            <span class="material-icons-round">phone_disabled</span>
+            <span>Hozircha qo'ng'iroqlar yo'q</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
