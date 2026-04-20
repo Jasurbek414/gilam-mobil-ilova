@@ -140,11 +140,11 @@ const ChatManager = {
       this.el.driversList.innerHTML = '';
 
       if (allUsers.length === 0) {
-        this.el.driversList.innerHTML = `<div class="chat-list-loading"><span class="material-icons-round">people_outline</span><span>Haydovchilar topilmadi</span></div>`;
+        this.el.driversList.innerHTML = `<div class="chat-list-loading"><span class="material-icons-round">people_outline</span><span>Xodimlar topilmadi</span></div>`;
         return;
       }
 
-      if (this.el.driversCount) this.el.driversCount.textContent = `${allUsers.length} ta haydovchi`;
+      if (this.el.driversCount) this.el.driversCount.textContent = `${allUsers.length} ta xodim`;
       allUsers.forEach(u => { this.drivers[u.id] = u; this._addDriverItem(u); });
 
     } catch (e) {
@@ -157,12 +157,19 @@ const ChatManager = {
     const initials = (user.fullName || '?').charAt(0).toUpperCase();
     const div = document.createElement('div');
     div.id = `driver-item-${user.id}`;
-    div.className = 'chat-driver-item';
+    const roleMap = {
+      'DRIVER': 'Haydovchi',
+      'WASHER': 'Sex xodimi',
+      'OPERATOR': 'Operator',
+      'COORDINATOR': 'Koordinator'
+    };
+    const roleName = roleMap[user.role] || 'Haydovchi';
+
     div.innerHTML = `
       <div class="chat-driver-avatar">${initials}</div>
       <div class="chat-driver-info">
         <div class="chat-driver-name">${user.fullName || user.phone}</div>
-        <div class="chat-driver-last">Haydovchi</div>
+        <div class="chat-driver-last">${roleName}</div>
       </div>
       <div class="chat-driver-meta">
         <div class="chat-driver-time" id="driver-time-${user.id}"></div>
@@ -183,9 +190,17 @@ const ChatManager = {
 
     const user = this.drivers[userId];
     const initials = (user?.fullName || '?').charAt(0).toUpperCase();
+    
+    const roleMap = {
+      'DRIVER': 'Haydovchi',
+      'WASHER': 'Sex xodimi',
+      'OPERATOR': 'Operator',
+      'COORDINATOR': 'Koordinator'
+    };
+    const roleName = user?.role ? (roleMap[user.role] || user.role) : 'Haydovchi';
 
     if (this.el.panelName)   this.el.panelName.textContent   = user?.fullName || '-';
-    if (this.el.panelRole)   this.el.panelRole.textContent   = 'Haydovchi • Online';
+    if (this.el.panelRole)   this.el.panelRole.textContent   = `${roleName} • Chat`;
     if (this.el.panelAvatar) this.el.panelAvatar.textContent = initials;
     if (this.el.panel)       this.el.panel.style.display     = 'flex';
     if (this.el.placeholder) this.el.placeholder.style.display = 'none';
