@@ -309,12 +309,12 @@ const ChatManager = {
 
   // ─── Kiruvchi xabar ──────────────────────────────────────────────────────────
   handleIncomingMessage(msg) {
-    if (!this.drivers[msg.senderId] && msg.sender) {
-      this.drivers[msg.senderId] = msg.sender;
+    if (!this.drivers[String(msg.senderId)] && msg.sender) {
+      this.drivers[String(msg.senderId)] = msg.sender;
       this._addDriverItem(msg.sender);
     }
 
-    if (this.activeChatUserId === msg.senderId) {
+    if (String(this.activeChatUserId) === String(msg.senderId)) {
       this.renderMessage(msg);
       this.scrollToBottom();
     } else {
@@ -609,8 +609,8 @@ const ChatManager = {
   // ─── Xabar render ────────────────────────────────────────────────────────────
   renderMessage(m) {
     if (!this.el.messagesBox) return;
-    const myId = window.Api.config.currentUser?.id;
-    const isMe = m.senderId === myId;
+    const myId = String(window.Api.config.currentUser?.id || '');
+    const isMe = String(m.senderId) === myId;
     const side = isMe ? 'me' : 'other';
     const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -732,7 +732,7 @@ const ChatManager = {
       bubbleEl.textContent = m.text;
     }
 
-    if (m.senderId === myId) {
+    if (String(m.senderId) === myId) {
       wrap.appendChild(actions); // My messages: actions on the left
       wrap.appendChild(bubbleEl);
     } else {
