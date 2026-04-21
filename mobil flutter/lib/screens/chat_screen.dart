@@ -37,19 +37,17 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
 
-    // Callbacks'larni AVVAL ulash
     ChatService.instance.onNewMessage = _onNewMessage;
     ChatService.instance.onMessageSent = _onMessageSent;
     ChatService.instance.onConnectionChange = _onConnectionChange;
 
-    // Ulanish boshlash (agar hali ulanmagan bo'lsa)
     ChatService.instance.connect();
-
     _init();
   }
 
   @override
   void dispose() {
+    ChatService.instance.stopPolling();
     ChatService.instance.onNewMessage = null;
     ChatService.instance.onMessageSent = null;
     ChatService.instance.onConnectionChange = null;
@@ -78,6 +76,10 @@ class _ChatPageState extends State<ChatPage> {
       } catch (e) {
         debugPrint('[Chat] History error: $e');
       }
+      ChatService.instance.startPolling(
+        partnerId: _operator!['id'].toString(),
+        companyId: widget.currentUser['companyId']?.toString(),
+      );
     }
 
     if (mounted) setState(() => _loading = false);
@@ -118,31 +120,6 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   // ── Send text ────────────────────────────────────────────────────────────────
-  void _sendSocket(String text) {
-    ChatService.instance.send('sendMessage', {
-      'recipientId': _operator!['id'],
-      'text': text,
-      'companyId': widget.currentUser['companyId'],
-    });
-  }
-
-  Future<void> _sendHttp(String text, String tempId) async {
-    try {
-      final res = await apiRequest('/messages', method: 'POST', body: {
-        'recipientId': _operator!['id'],
-        'text': text,
-        'companyId': widget.currentUser['companyId'],
-      });
-      if (res != null && mounted) {
-        final confirmed = Map<String, dynamic>.from(res as Map);
-        setState(() {
-          final idx = _messages.indexWhere((m) => m['id'] == tempId);
-          if (idx >= 0) _messages[idx] = confirmed;
-        });
-      }
-    } catch (e) { debugPrint('[Chat] HTTP send err: $e'); }
-  }
-
   void _send() {
     final text = _ctrl.text.trim();
     if (text.isEmpty || _operator == null) return;
@@ -162,11 +139,11 @@ class _ChatPageState extends State<ChatPage> {
     _focusNode.requestFocus();
     _scrollToBottom();
 
-    if (_connected) {
-      _sendSocket(text);
-    } else {
-      _sendHttp(text, tempId);
-    }
+    ChatService.instance.sendMessage(
+      recipientId: _operator!['id'].toString(),
+      text: text,
+      companyId: widget.currentUser['companyId']?.toString(),
+    );
   }
 
   // ── Send image ───────────────────────────────────────────────────────────────
@@ -202,11 +179,11 @@ class _ChatPageState extends State<ChatPage> {
       setState(() { _messages.add(tempMsg); _sendingMedia = false; });
       _scrollToBottom();
 
-      if (_connected) {
-        _sendSocket(text);
-      } else {
-        _sendHttp(text, tempId);
-      }
+      ChatService.instance.sendMessage(
+        recipientId: _operator!['id'].toString(),
+        text: text,
+        companyId: widget.currentUser['companyId']?.toString(),
+      );
     } catch (e) {
       debugPrint('[Chat] Image error: $e');
       if (mounted) setState(() => _sendingMedia = false);
@@ -246,11 +223,11 @@ class _ChatPageState extends State<ChatPage> {
       setState(() { _messages.add(tempMsg); _sendingMedia = false; });
       _scrollToBottom();
 
-      if (_connected) {
-        _sendSocket(text);
-      } else {
-        _sendHttp(text, tempId);
-      }
+      ChatService.instance.sendMessage(
+        recipientId: _operator!['id'].toString(),
+        text: text,
+        companyId: widget.currentUser['companyId']?.toString(),
+      );
     } catch (e) {
       debugPrint('[Chat] Location error: $e');
       if (mounted) {
