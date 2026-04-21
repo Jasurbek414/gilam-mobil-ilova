@@ -520,7 +520,20 @@ class _OrderCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('📦 ${items?.length ?? 0} xil tur', style: const TextStyle(color: kTextMuted, fontSize: 12)),
+                Row(
+                  children: [
+                    Text('📦 ${items?.length ?? 0} xil tur', style: const TextStyle(color: kTextMuted, fontSize: 12)),
+                    if (order['createdAt'] != null) ...[
+                      const SizedBox(width: 12),
+                      const Icon(Icons.access_time_outlined, size: 12, color: kTextMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatDate(order['createdAt']),
+                        style: const TextStyle(color: kTextMuted, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
                 const Row(
                   children: [
                     Text('Batafsil', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
@@ -533,6 +546,15 @@ class _OrderCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(String iso) {
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '';
+    }
   }
 }
 
