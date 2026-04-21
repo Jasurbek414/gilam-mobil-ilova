@@ -240,15 +240,11 @@ const ChatManager = {
   // ─── Matn xabari yuborish ────────────────────────────────────────────────────
   sendMessage() {
     const val = this.el.input?.value?.trim();
-    if (!val || !this.activeChatUserId || !this.socket) return;
+    if (!val || !this.activeChatUserId) return;
 
     const me = window.Api.config.currentUser || {};
-    this.socket.emit('sendMessage', {
-      text: val,
-      recipientId: this.activeChatUserId,
-      companyId: me.companyId,
-    });
 
+    // Optimistik render — foydalanuvchi darhol xabarini ko'rsin
     this.renderMessage({
       text: val,
       senderId: me.id,
@@ -259,6 +255,25 @@ const ChatManager = {
     this.el.input.value = '';
     this.el.input.style.height = '';
     this.scrollToBottom();
+
+    if (this.socket && this.socket.connected) {
+      // Socket.IO orqali yuborish
+      this.socket.emit('sendMessage', {
+        text: val,
+        recipientId: this.activeChatUserId,
+        companyId: me.companyId,
+      });
+    } else {
+      // REST HTTP fallback
+      window.Api.request('/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipientId: this.activeChatUserId,
+          text: val,
+          companyId: me.companyId,
+        }),
+      }).catch(e => console.warn('[Chat] HTTP send error:', e));
+    }
   },
 
   _sendRaw(text) {
@@ -616,12 +631,16 @@ const ChatManager = {
   renderMessage(m) {
     if (!this.el.messagesBox) return;
     const myId = String(window.Api.config.currentUser?.id || '');
-    const isMe = String(m.senderId) === myId;
+    // senderId ikki xil formatda kelishi mumkin (camelCase va snake_case)
+    const senderId = m.senderId || m.sender_id || '';
+    const isMe = String(senderId) === myId;
     const side = isMe ? 'me' : 'other';
-    const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // createdAt ham ikki xil bo'lishi mumkin
+    const dateRaw = m.createdAt || m.created_at || new Date().toISOString();
+    const timeStr = new Date(dateRaw).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const isSameGroup = this._lastSenderId === m.senderId;
-    this._lastSenderId = m.senderId;
+    const isSameGroup = this._lastSenderId === senderId;
+    this._lastSenderId = senderId;
 
     let group;
     if (isSameGroup) {
@@ -638,7 +657,9 @@ const ChatManager = {
       if (!isMe && m.sender?.fullName) {
         const sender = document.createElement('div');
         sender.className = 'chat-msg-sender';
-        sender.textContent = m.sender.fullName;
+        // sender object yoki senderName dan olish
+        const name = (typeof m.sender === 'object' ? m.sender?.fullName : null) || m.senderName || '';
+        sender.textContent = name;
         group.appendChild(sender);
       }
 
@@ -738,7 +759,7 @@ const ChatManager = {
       bubbleEl.textContent = m.text;
     }
 
-    if (String(m.senderId) === myId) {
+    if (String(senderId) === myId) {
       wrap.appendChild(actions); // My messages: actions on the left
       wrap.appendChild(bubbleEl);
     } else {
