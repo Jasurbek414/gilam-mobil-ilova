@@ -126,7 +126,9 @@ const ChatManager = {
       if (!ulist || !Array.isArray(ulist)) return;
 
       const myId = window.Api.config.currentUser?.id;
-      const drivers = ulist.filter(u => u.role === 'DRIVER' && u.id !== myId);
+      // Haydovchilar + sex hodimlarini (WASHER, FINISHER) ham ko'rsatish
+      const chatRoles = ['DRIVER', 'WASHER', 'FINISHER'];
+      const drivers = ulist.filter(u => chatRoles.includes(u.role) && u.id !== myId);
 
       let convUsers = [];
       try { convUsers = await window.Api.request('/messages/conversations') || []; } catch(_) {}
