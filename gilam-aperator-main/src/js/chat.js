@@ -105,6 +105,12 @@ const ChatManager = {
       this.socket.on('newMessage', (msg) => this.handleIncomingMessage(msg));
       this.socket.on('messageSent', (msg) => {
         console.log('[Chat] Server tasdiqladi:', msg?.id);
+        // Agar shu chat ochiq bo'lsa — server tasdiqlagan xabarni render qilamiz
+        if (msg && this.activeChatUserId === String(msg.recipientId)) {
+          // Dublikatni tekshirish: agar allaqachon renderda bo'lsa qo'shmaymiz
+          const existing = this.el.messagesBox?.querySelector(`[data-msg-id="${msg.id}"]`);
+          if (!existing && msg.id) this.renderMessage(msg);
+        }
       });
 
     } catch (err) {

@@ -36,11 +36,16 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _init();
-    
+
+    // Callbacks'larni AVVAL ulash
     ChatService.instance.onNewMessage = _onNewMessage;
     ChatService.instance.onMessageSent = _onMessageSent;
     ChatService.instance.onConnectionChange = _onConnectionChange;
+
+    // Ulanish boshlash (agar hali ulanmagan bo'lsa)
+    ChatService.instance.connect();
+
+    _init();
   }
 
   @override
@@ -81,10 +86,19 @@ class _ChatPageState extends State<ChatPage> {
   // ── ChatService Listeners ───────────────────────────────────────────────────
   void _onNewMessage(Map<String, dynamic> msg) {
     if (!mounted) return;
-    final fromOp = _operator != null && msg['senderId'].toString() == _operator!['id'].toString();
-    if (fromOp) { 
-      setState(() => _messages.add(msg)); 
-      _scrollToBottom(); 
+    // Har qanday jo'natuvchidan kelgan yangi xabarni qo'shamiz
+    // (Bu ekran faqat support contact bilan chat, shuning uchun
+    //  barcha kiruvchi xabarlar shu suhbatga tegishli)
+    final senderId = msg['senderId']?.toString() ?? '';
+    final myId = widget.currentUser['id']?.toString() ?? '';
+    // Faqat boshqadan kelgan xabarlarni qo'shamiz (o'zimiznikini messageSent orqali olamiz)
+    if (senderId != myId) {
+      // Dublikatni tekshirish
+      final alreadyExists = _messages.any((m) => m['id']?.toString() == msg['id']?.toString() && msg['id'] != null);
+      if (!alreadyExists) {
+        setState(() => _messages.add(msg));
+        _scrollToBottom();
+      }
     }
   }
 
