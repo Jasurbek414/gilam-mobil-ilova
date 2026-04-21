@@ -62,10 +62,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       _locStream = Geolocator.getPositionStream(locationSettings: settings).listen((pos) {
-        // Operator ekranidagi harita uchun driver pozitsiyasini doimiy yangilab turish
         try {
           apiRequest('/users/${widget.user['id']}', method: 'PUT', body: {
-            'currentLocation': {'x': pos.longitude, 'y': pos.latitude}
+            'currentLocation': '${pos.latitude},${pos.longitude}'
           });
         } catch (_) {}
       });
