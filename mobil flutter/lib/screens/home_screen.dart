@@ -61,6 +61,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       }
 
+      // App ochilganida darhol joylashuvni aniqlash va backendga jo'natish (10 metr kutmasligi uchun)
+      try {
+        final initialPos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        await apiRequest('/users/${widget.user['id']}', method: 'PUT', body: {
+          'currentLocation': '${initialPos.latitude},${initialPos.longitude}'
+        });
+      } catch (_) {}
+
       _locStream = Geolocator.getPositionStream(locationSettings: settings).listen((pos) {
         try {
           apiRequest('/users/${widget.user['id']}', method: 'PUT', body: {
