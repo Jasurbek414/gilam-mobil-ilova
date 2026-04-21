@@ -165,6 +165,7 @@ const ChatManager = {
     };
     const roleName = roleMap[user.role] || 'Haydovchi';
 
+    div.className = 'chat-driver-item';
     div.innerHTML = `
       <div class="chat-driver-avatar">${initials}</div>
       <div class="chat-driver-info">
