@@ -115,7 +115,7 @@ class ChatService {
     debugPrint('[Chat] SID: $_sid');
 
     // Step 2: Join /chat namespace
-    final pollUri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid');
+    final pollUri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid&token=$_token');
     final r2 = await _client.post(
       pollUri,
       headers: {'Content-Type': 'text/plain;charset=UTF-8'},
@@ -146,7 +146,7 @@ class ChatService {
   // ── Polling ────────────────────────────────────────────────────────────────
 
   Future<void> _poll() async {
-    final uri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid');
+    final uri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid&token=$_token');
     final r = await _client.get(uri).timeout(const Duration(seconds: 40));
 
     if (r.statusCode == 400 || r.statusCode == 404) {
@@ -260,7 +260,7 @@ class ChatService {
   Future<void> _sendPacket(String event, Map<String, dynamic> data) async {
     if (_sid == null) return;
     final payload = '42$_ns,${jsonEncode([event, data])}';
-    final uri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid');
+    final uri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid&token=$_token');
     try {
       await _client.post(
         uri,
@@ -274,7 +274,7 @@ class ChatService {
 
   Future<void> _sendPong() async {
     if (_sid == null) return;
-    final uri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid');
+    final uri = Uri.parse('$_origin$_path?EIO=4&transport=polling&sid=$_sid&token=$_token');
     try {
       await _client.post(uri,
           headers: {'Content-Type': 'text/plain;charset=UTF-8'}, body: '3');

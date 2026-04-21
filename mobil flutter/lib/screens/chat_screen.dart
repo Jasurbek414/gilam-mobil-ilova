@@ -81,7 +81,7 @@ class _ChatPageState extends State<ChatPage> {
   // ── ChatService Listeners ───────────────────────────────────────────────────
   void _onNewMessage(Map<String, dynamic> msg) {
     if (!mounted) return;
-    final fromOp = _operator != null && msg['senderId'] == _operator!['id'];
+    final fromOp = _operator != null && msg['senderId'].toString() == _operator!['id'].toString();
     if (fromOp) { 
       setState(() => _messages.add(msg)); 
       _scrollToBottom(); 
@@ -380,7 +380,7 @@ class _ChatPageState extends State<ChatPage> {
       itemCount: _messages.length,
       itemBuilder: (_, i) {
         final msg = _messages[i];
-        final isMe = msg['senderId'] == widget.currentUser['id'];
+        final isMe = msg['senderId'].toString() == widget.currentUser['id'].toString();
         final showDate = i == 0 || _diffDay(_messages[i - 1], msg);
         return Column(mainAxisSize: MainAxisSize.min, children: [
           if (showDate) _DateLabel(msg['createdAt'] as String?),
