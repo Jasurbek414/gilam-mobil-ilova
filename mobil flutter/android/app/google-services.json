@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "802790836515",
+    "project_id": "gilam-driver",
+    "storage_bucket": "gilam-driver.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:802790836515:android:a6498605573fc750de2496",
+        "android_client_info": {
+          "package_name": "uz.ecos.gilam.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBp-hSX69MxtFw5Z2SL4VjKXPhsai0ekQ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
