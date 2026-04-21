@@ -1161,7 +1161,7 @@ function connectChatSocket() {
   try {
     const io = require('socket.io-client');
     chatSocket = io(`${API_BASE}/chat`, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket'],
       auth: { token },
       query: { token },
       extraHeaders: { authorization: `Bearer ${token}` },
