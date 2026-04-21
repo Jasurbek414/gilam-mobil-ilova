@@ -36,11 +36,10 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-
+    // Avval callbacklarni, so'ng connect
     ChatService.instance.onNewMessage = _onNewMessage;
     ChatService.instance.onMessageSent = _onMessageSent;
     ChatService.instance.onConnectionChange = _onConnectionChange;
-
     ChatService.instance.connect();
     _init();
   }
@@ -57,59 +56,69 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  // ── Init ─────────────────────────────────────────────────────────────────────
+  // ── Init ─────────────────────────────────────────────────────────────────
   Future<void> _init() async {
+    // 1. Operatorni olish
     try {
       final op = await getSupportContact();
       if (mounted && op != null) setState(() => _operator = op);
     } catch (e) {
-      debugPrint('[Chat] Operator error: $e');
+      debugPrint('[Chat] getSupportContact xato: $e');
     }
 
     if (_operator != null) {
+      // 2. Tarixni yuklash
       try {
-        final h = await getMessageHistory(_operator!['id'].toString());
+        final history = await getMessageHistory(_operator!['id'].toString());
         if (mounted) {
-          setState(() => _messages = List<Map<String, dynamic>>.from(h));
+          setState(() => _messages = List<Map<String, dynamic>>.from(history));
           _scrollToBottom();
         }
       } catch (e) {
-        debugPrint('[Chat] History error: $e');
+        debugPrint('[Chat] getMessageHistory xato: $e');
       }
+
+      // 3. Polling ni TARIXDAGI ID lar bilan boshlash (dublikat bo'lmasin)
+      final seenIds = _messages
+          .where((m) => m['id'] != null)
+          .map((m) => m['id'].toString())
+          .toSet();
+
       ChatService.instance.startPolling(
         partnerId: _operator!['id'].toString(),
         companyId: widget.currentUser['companyId']?.toString(),
+        existingIds: seenIds,
       );
     }
 
     if (mounted) setState(() => _loading = false);
   }
 
-  // ── ChatService Listeners ───────────────────────────────────────────────────
+  // ── ChatService Callbacks ─────────────────────────────────────────────────────────
+
+  /// Polling orqali yangi xabar keldi (operator yoki boshqa tomondan)
   void _onNewMessage(Map<String, dynamic> msg) {
     if (!mounted) return;
-    // Har qanday jo'natuvchidan kelgan yangi xabarni qo'shamiz
-    // (Bu ekran faqat support contact bilan chat, shuning uchun
-    //  barcha kiruvchi xabarlar shu suhbatga tegishli)
-    final senderId = msg['senderId']?.toString() ?? '';
-    final myId = widget.currentUser['id']?.toString() ?? '';
-    // Faqat boshqadan kelgan xabarlarni qo'shamiz (o'zimiznikini messageSent orqali olamiz)
-    if (senderId != myId) {
-      // Dublikatni tekshirish
-      final alreadyExists = _messages.any((m) => m['id']?.toString() == msg['id']?.toString() && msg['id'] != null);
-      if (!alreadyExists) {
-        setState(() => _messages.add(msg));
-        _scrollToBottom();
-      }
-    }
+    // ChatService allaqachon faqat yangi (seen bo'lmagan) xabarlarni yuboradi
+    // UI shunchaki qo'shadi
+    setState(() => _messages.add(msg));
+    _scrollToBottom();
   }
 
+  /// O'zimiz yuborgan xabar serverdan tasdiqlandi
   void _onMessageSent(Map<String, dynamic> msg) {
     if (!mounted) return;
     setState(() {
+      // Temp xabarni haqiqiy xabar bilan almashtir
       final idx = _messages.indexWhere((m) => m['_temp'] == true);
-      if (idx >= 0) _messages[idx] = msg;
-      else _messages.add(msg);
+      if (idx >= 0) {
+        _messages[idx] = msg;
+      } else {
+        // Temp topilmasa, asosan ko'rinib turibdi deb hisoblaymiz (sendMessage optimistic)
+        // Dublikatni tekshir
+        final exists = _messages.any((m) => m['id'] == msg['id']);
+        if (!exists) _messages.add(msg);
+      }
     });
     _scrollToBottom();
   }

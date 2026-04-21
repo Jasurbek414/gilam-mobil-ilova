@@ -1,82 +1,99 @@
-/// Gilam Chat Service — REST polling yondashuvi.
-/// Socket.IO Cloudflare orqali bloklangani uchun, bu servis:
-///   1. Xabar yuborish: POST /api/messages (REST)
-///   2. Yangi xabarlar: GET /api/messages/history/:id ni har 4 soniyada tekshirish
-/// Bu yondashuv 100% ishonchli va Cloudflare bilan muammo chiqarmaydi.
+/// ChatService — Flutter uchun oddiy REST polling chat
+/// Socket.IO Cloudflare orqali ishlamaydi, shuning uchun:
+/// - Yuborish: POST /api/messages
+/// - Olish: har 3 soniyada GET /api/messages/history/:partnerId
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'api.dart';
 
-typedef MsgCallback = void Function(Map<String, dynamic> msg);
-typedef ConnCallback = void Function(bool connected);
+typedef MessageCallback = void Function(Map<String, dynamic> msg);
+typedef ConnectionCallback = void Function(bool isOnline);
 
 class ChatService {
-  static final ChatService _instance = ChatService._();
-  static ChatService get instance => _instance;
-  ChatService._();
+  // Singleton
+  static final ChatService instance = ChatService._internal();
+  factory ChatService() => instance;
+  ChatService._internal();
 
-  Timer? _pollTimer;
-  bool _running = false;
-  bool _connected = false;
-  String? _currentPartnerId;
-  String? _currentCompanyId;
-  DateTime? _lastMessageTime;
-  final List<String> _knownIds = [];
+  // State
+  bool _active = false;
+  String? _partnerId;
+  String? _companyId;
+  Timer? _timer;
+  final Set<String> _seenIds = {};
 
-  MsgCallback? onNewMessage;
-  MsgCallback? onMessageSent;
-  ConnCallback? onConnectionChange;
+  // Callbacks
+  MessageCallback? onNewMessage;
+  MessageCallback? onMessageSent;
+  ConnectionCallback? onConnectionChange;
 
-  bool get isConnected => _connected;
+  bool get isConnected => _active;
 
-  // ── Public API ─────────────────────────────────────────────────────────────
+  // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
-  Future<void> connect() async {
-    if (_running) return;
-    _running = true;
-    _setConnected(true);
-    debugPrint('[Chat] ✅ REST polling rejimi ishga tushdi');
+  void connect() {
+    if (_active) return;
+    _active = true;
+    _notify(true);
+    debugPrint('[Chat] Ishga tushdi');
   }
 
   void disconnect() {
-    _running = false;
-    _pollTimer?.cancel();
-    _pollTimer = null;
-    _setConnected(false);
-    debugPrint('[Chat] Uzildi');
+    _active = false;
+    _timer?.cancel();
+    _timer = null;
+    _seenIds.clear();
+    _partnerId = null;
+    _notify(false);
+    debugPrint('[Chat] To\'xtatildi');
   }
 
   Future<void> reconnect() async {
     disconnect();
-    await Future.delayed(const Duration(milliseconds: 200));
-    await connect();
+    await Future.delayed(const Duration(milliseconds: 300));
+    connect();
   }
 
-  /// Polling ni boshlash — chat ekrani ochilganda chaqiriladi
-  void startPolling({required String partnerId, required String? companyId}) {
-    _currentPartnerId = partnerId;
-    _currentCompanyId = companyId;
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) => _pollNewMessages());
-    debugPrint('[Chat] Polling boshlandi: partnerId=$partnerId');
+  // ─── Polling ────────────────────────────────────────────────────────────────
+
+  /// Chat ochilganda chaqiriladi.
+  /// [existingIds] — tarixdan yuklangan xabar IDlari (dublikat bo'lmasin)
+  void startPolling({
+    required String partnerId,
+    String? companyId,
+    Set<String>? existingIds,
+  }) {
+    _partnerId = partnerId;
+    _companyId = companyId;
+    _seenIds.clear();
+    if (existingIds != null) _seenIds.addAll(existingIds);
+
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) => _poll());
+    debugPrint('[Chat] Polling: partnerId=$partnerId, boshlangich IDlar=${_seenIds.length}');
   }
 
+  /// Chat yopilganda chaqiriladi.
   void stopPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
-    _currentPartnerId = null;
+    _timer?.cancel();
+    _timer = null;
+    _seenIds.clear();
+    _partnerId = null;
     debugPrint('[Chat] Polling to\'xtatildi');
   }
 
-  /// Xabar yuborish — REST orqali
-  Future<bool> sendMessage({
+  // ─── Send ───────────────────────────────────────────────────────────────────
+
+  /// Xabar yuborish. Muvaffaqiyatli bo'lsa [onMessageSent] chaqiriladi.
+  Future<Map<String, dynamic>?> sendMessage({
     required String recipientId,
     required String text,
     String? companyId,
   }) async {
     try {
-      final res = await apiRequest(
+      debugPrint('[Chat] Yuborilmoqda → recipientId=$recipientId');
+      final result = await apiRequest(
         '/messages',
         method: 'POST',
         body: {
@@ -85,20 +102,24 @@ class ChatService {
           if (companyId != null) 'companyId': companyId,
         },
       );
-      if (res != null) {
-        final msg = Map<String, dynamic>.from(res as Map);
-        _trackId(msg['id']?.toString());
+
+      if (result != null) {
+        final msg = Map<String, dynamic>.from(result as Map);
+        final id = msg['id']?.toString();
+        if (id != null) {
+          _seenIds.add(id); // Bu xabar keyingi pollda "yangi" sifatida ko'rinmasin
+        }
+        debugPrint('[Chat] ✅ Yuborildi id=$id');
         onMessageSent?.call(msg);
-        debugPrint('[Chat] ✅ Xabar yuborildi');
-        return true;
+        return msg;
       }
     } catch (e) {
-      debugPrint('[Chat] ❌ Yuborish xatoligi: $e');
+      debugPrint('[Chat] ❌ Yuborish xatosi: $e');
     }
-    return false;
+    return null;
   }
 
-  /// send() — eski interfeys bilan moslik uchun
+  /// socket_io_client bilan moslik uchun (eski kod chaqirib qolishi mumkin)
   void send(String event, Map<String, dynamic> data) {
     if (event == 'sendMessage') {
       sendMessage(
@@ -109,46 +130,38 @@ class ChatService {
     }
   }
 
-  // ── Polling ────────────────────────────────────────────────────────────────
+  // ─── Private ────────────────────────────────────────────────────────────────
 
-  Future<void> _pollNewMessages() async {
-    if (_currentPartnerId == null) return;
+  Future<void> _poll() async {
+    if (_partnerId == null) return;
+
     try {
-      final history = await apiRequest('/messages/history/$_currentPartnerId');
-      if (history == null || history is! List) return;
+      final raw = await apiRequest('/messages/history/$_partnerId');
+      if (raw == null) return;
 
-      final messages = List<Map<String, dynamic>>.from(
-        history.map((e) => Map<String, dynamic>.from(e as Map)),
-      );
-
-      // Oxirgi vaqtdan keyin kelgan yangi xabarlarni topamiz
-      for (final msg in messages) {
+      final list = raw as List;
+      for (final item in list) {
+        final msg = Map<String, dynamic>.from(item as Map);
         final id = msg['id']?.toString();
-        if (id != null && !_knownIds.contains(id)) {
-          _knownIds.add(id);
+        if (id == null) continue;
+
+        if (!_seenIds.contains(id)) {
+          _seenIds.add(id);
+          debugPrint('[Chat] 📩 Yangi xabar id=$id, senderId=${msg['senderId']}');
           onNewMessage?.call(msg);
-          debugPrint('[Chat] 📩 Yangi xabar: ${msg['text']?.toString().substring(0, (msg['text']?.toString().length ?? 0).clamp(0, 30))}');
         }
       }
 
-      if (!_connected) _setConnected(true);
+      if (!_active) {
+        _active = true;
+        _notify(true);
+      }
     } catch (e) {
-      debugPrint('[Chat] Poll xatoligi: $e');
-      if (_connected) _setConnected(false);
+      debugPrint('[Chat] Poll xatosi: $e');
     }
   }
 
-  void _trackId(String? id) {
-    if (id != null && !_knownIds.contains(id)) {
-      _knownIds.add(id);
-    }
-  }
-
-  void _setConnected(bool val) {
-    if (_connected != val) {
-      _connected = val;
-      debugPrint('[Chat] Holat: ${val ? "✅ ONLINE" : "❌ OFFLINE"}');
-      onConnectionChange?.call(val);
-    }
+  void _notify(bool online) {
+    onConnectionChange?.call(online);
   }
 }
