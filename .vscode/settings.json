@@ -1,0 +1,14 @@
+{
+  "typescript.tsserver.exclude": [
+    "**/gilam-driver/**"
+  ],
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/gilam-driver": true
+  },
+  "files.exclude": {
+    "**/gilam-driver": true
+  },
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": true
+}
